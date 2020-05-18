@@ -1,0 +1,38 @@
+﻿<Window x:Class="MP3_analysis_player.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
+        xmlns:local="clr-namespace:MP3_analysis_player"
+        mc:Ignorable="d"
+        Title="mp3 player" Height="540" Width="960" Visibility="Visible" Background="White" Foreground="Black" Icon="images/icon.jpg" MaxWidth="960" MaxHeight="540">
+    <Canvas>
+        <Grid Height="509" Width="952">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0*"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Rectangle Fill="White" HorizontalAlignment="Left" Height="509" Stroke="Black" VerticalAlignment="Top" Width="214" Grid.ColumnSpan="2"/>
+            <Rectangle Fill="#FFF4F4F5" HorizontalAlignment="Left" Height="233" Margin="214,0,0,0" Stroke="Black" VerticalAlignment="Top" Width="738" Grid.Column="1"/>
+            <Rectangle Fill="#FFF4F4F5" HorizontalAlignment="Left" Height="212" Margin="214,233,0,0" Stroke="Black" VerticalAlignment="Top" Width="738" Grid.Column="1"/>
+            <Rectangle Fill="#FFF4F4F5" HorizontalAlignment="Left" Height="64" Margin="214,445,0,0" Stroke="Black" VerticalAlignment="Top" Width="738" Grid.Column="1"/>
+            <Button Content="" HorizontalAlignment="Left" Height="30" Margin="249,460,0,0" VerticalAlignment="Top" Width="30" RenderTransformOrigin="-0.233,0.467" BorderBrush="White" Grid.Column="1" Click="Button_Click_Play">
+                <Button.Background>
+                    <ImageBrush ImageSource="images/play.jpg"/>
+                </Button.Background>
+            </Button>
+            <Button Content=""  HorizontalAlignment="Left" Height="30" Margin="304,460,0,0" VerticalAlignment="Top" Width="30" Grid.Column="1" Click="Button_Click_Stop" BorderBrush="White" OpacityMask="#FFFFFDFD">
+                <Button.Background>
+                    <ImageBrush ImageSource="images/stop.jpg"/>
+                </Button.Background>
+            </Button>
+            <ProgressBar Name ="ProgressBar" HorizontalAlignment="Left" Height="6" Margin="374,472,0,0" Style="{DynamicResource SimpleProgressBar}" VerticalAlignment="Top" Width="530" Foreground="#FF0C00FF" Grid.Column="1" Cursor="Arrow" Value="0" BorderBrush="#FFBF2929" Background="#FFD61616" OpacityMask="#FFB42C2C" ValueChanged="ProgressBar_ValueChanged"/>
+            <Button Grid.ColumnSpan="2" Name="Open_file" Content="打开文件" HorizontalAlignment="Left" Height="45" Margin="55,357,0,0" VerticalAlignment="Top" Width="100" Click="Open_file_Click"/>
+            <Button Grid.ColumnSpan="2" Name="Close_file" Content="关闭文件" HorizontalAlignment="Left" Height="45" Margin="55,433,0,0" VerticalAlignment="Top" Width="100" Click="Close_file_Click"/>
+            <Label x:Name="文件名" Grid.ColumnSpan="2" Content="文件名：" HorizontalAlignment="Left" Height="27" Margin="10,45,0,0" VerticalAlignment="Top" Width="54" FontWeight="Bold"/>
+            <TextBlock x:Name="Filename" Grid.ColumnSpan="2" HorizontalAlignment="Left" Height="23" Margin="64,49,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="139" Padding="0" FontSize="16"/>
+            <lvc:CartesianChart x:Name="pcm_chart" Series="{Binding SeriesCollection}" Grid.ColumnSpan="2" Margin="214,0,0,276" />
+        </Grid>
+    </Canvas>
+</Window>
