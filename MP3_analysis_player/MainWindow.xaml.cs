@@ -6,7 +6,6 @@ using MP3_analysis_player.decoder;
 using System.IO;
 using System.Windows.Forms;
 using MP3_analysis_player.decoder.format_definition;
-using MP3_analysis_player.decoder.header;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxOptions = System.Windows.MessageBoxOptions;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;

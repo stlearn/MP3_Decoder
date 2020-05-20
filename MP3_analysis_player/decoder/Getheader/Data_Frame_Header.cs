@@ -2,7 +2,7 @@
 using MP3_analysis_player.decoder.format_definition;
 using MP3_analysis_player.decoder.table;
 
-namespace MP3_analysis_player.decoder.header
+namespace MP3_analysis_player.decoder.Getheader
 {
     /// <summary>
     ///定义和获取数据帧头部的类

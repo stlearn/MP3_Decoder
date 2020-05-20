@@ -2,7 +2,7 @@
 using System.Text;
 using MP3_analysis_player.decoder.format_definition;
 
-namespace MP3_analysis_player.decoder.header
+namespace MP3_analysis_player.decoder.Getheader
 {
     /// <summary>
     /// IDV3V2分析

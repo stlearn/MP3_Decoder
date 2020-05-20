@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MP3_analysis_player.decoder.format_definition;
+using MP3_analysis_player.decoder.Getheader;
 
 namespace MP3_analysis_player.decoder
 {
@@ -22,12 +23,23 @@ namespace MP3_analysis_player.decoder
         /// </summary>
         private readonly byte[] frame_data;
 
-        public Decode(Data_Frame_Header_Info _frameHeaderInfo, byte[] _frameData)
+        /// <summary>
+        /// 文件输入流
+        /// </summary>
+        private readonly Stream input;
+
+        public Decode(Data_Frame_Header_Info _frameHeaderInfo, byte[] _frameData,Stream _input)
         {
             frameHeaderInfo = _frameHeaderInfo;
             frame_data = _frameData;
+            input = _input;
         }
 
+        public void Start()
+        {
+            Get_side_info getSideInfo = new Get_side_info(frame_data,frameHeaderInfo);
+            Side_Infomation sideInfomation = getSideInfo.GetSideInfomation();
+        }
 
     }
 }

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MP3_analysis_player.decoder.format_definition;
-using MP3_analysis_player.decoder.header;
+using MP3_analysis_player.decoder.Getheader;
 
 namespace MP3_analysis_player.decoder
 {
@@ -54,7 +54,8 @@ namespace MP3_analysis_player.decoder
                     input.Read(besides_header, 0, besides_header.Length);
 
                     //进行这一帧的解码
-                    Decode decode = new Decode(headerInfo,besides_header);
+                    Decode decode = new Decode(headerInfo,besides_header,input);
+                    decode.Start();
                 }
             }
             return true;
