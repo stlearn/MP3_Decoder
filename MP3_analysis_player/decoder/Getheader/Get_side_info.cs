@@ -117,7 +117,7 @@ namespace MP3_analysis_player.decoder.Getheader
             granule.scale_fac_compress[0] = (byte) ((granule.scale_fac_compress[0] << 3) + data[6] >> 5);
 
             granule.window_switching_flag[0] = (byte) ((data[6] >> 4) & 0x01);
-            //当上面这个为0时
+            //当上面这个为1时
             if (granule.window_switching_flag[0] == 1)
             {
                 granule.block_type[0] = (byte) ((data[6] >> 2) & 0x03);
@@ -126,18 +126,18 @@ namespace MP3_analysis_player.decoder.Getheader
                 granule.table_select[0][0] = (uint) (data[6] & 0x01);
                 granule.table_select[0][0] = (uint) ((granule.table_select[0][0] << 4) + data[7] >> 4);
 
-                granule.table_select[0][1] = (uint) (((data[7] & 0x0f) << 1) + data[8] >> 7);
+                granule.table_select[0][1] = (uint) (((data[7] & 0x0f) << 1) + (data[8] >> 7));
 
                 granule.subblock_gain[0][0] = (uint) ((data[8] >> 4) & 0x07);
                 granule.subblock_gain[0][1] = (uint) ((data[8] >> 1) & 0x07);
-                granule.subblock_gain[0][2] = (uint) (((data[8] & 0x01) << 2) + data[9] >> 6);
+                granule.subblock_gain[0][2] = (uint) (((data[8] & 0x01) << 2) + (data[9] >> 6));
             }
             //当上面这个为1时
             else
             {
-                granule.table_select[0][0] = (uint) ((data[6] & 0x0F) << 1 + (data[7] >> 7));
+                granule.table_select[0][0] = (uint) (((data[6] & 0x0F) << 1) + (data[7] >> 7));
                 granule.table_select[0][1] = (uint) ((data[7] >> 2) & 0x1f);
-                granule.table_select[0][2] = (uint) ((data[7] & 0x03) << 3 + (data[8] >> 5));
+                granule.table_select[0][2] = (uint) (((data[7] & 0x03) << 3) + (data[8] >> 5));
 
                 granule.region0_count[0] = (byte) ((data[8] >> 1) & 0x0f);
 
@@ -162,7 +162,7 @@ namespace MP3_analysis_player.decoder.Getheader
 
             granule.part2_3_length[0] = (uint)(data[9] & 0x07);
             granule.part2_3_length[0] = (uint)((granule.part2_3_length[0] << 8) + data[10]);
-            granule.part2_3_length[0] = (uint) ((granule.part2_3_length[0] << 1) + data[11] >> 7);
+            granule.part2_3_length[0] = (uint) ((granule.part2_3_length[0] << 1) + (data[11] >> 7));
 
             granule.big_values[0] = (ushort)(data[11] & 0x7f);
             granule.big_values[0] = (ushort)((granule.big_values[0] << 2) + (data[12] >> 6));
@@ -176,26 +176,26 @@ namespace MP3_analysis_player.decoder.Getheader
             //当上面这个为0时
             if (granule.window_switching_flag[0] == 1)
             {
-                granule.block_type[0] = (byte)(((data[13] & 0x01)<<1)+data[14]>>7);
+                granule.block_type[0] = (byte)(((data[13] & 0x01)<<1)+(data[14]>>7));
 
                 granule.mixed_block_flag[0] = (byte)((data[14] >> 6) & 0x01);
 
                 granule.table_select[0][0] = (uint)((data[14]>>1) & 0x1f);
 
-                granule.table_select[0][1] = (uint)(((data[14] & 0x01) << 4) + data[15] >> 4);
+                granule.table_select[0][1] = (uint)(((data[14] & 0x01) << 4) + (data[15] >> 4));
 
                 granule.subblock_gain[0][0] = (uint) ((data[15] >> 1) & 0x07);
-                granule.subblock_gain[0][1] = (uint)(((data[15]& 0x01) << 2)+data[16]>>6);
+                granule.subblock_gain[0][1] = (uint)(((data[15]& 0x01) << 2)+(data[16]>>6));
                 granule.subblock_gain[0][2] = (uint) ((data[16] >> 3) & 0x07);
             }
             //当上面这个为1时
             else
             {
-                granule.table_select[0][0] = (uint)((data[13] & 0x01) << 4 + (data[14] >> 4));
-                granule.table_select[0][1] = (uint) (((data[14] & 0x0f) << 1) + data[15] >> 7);
+                granule.table_select[0][0] = (uint)(((data[13] & 0x01) << 4) + (data[14] >> 4));
+                granule.table_select[0][1] = (uint) (((data[14] & 0x0f) << 1) + (data[15] >> 7));
                 granule.table_select[0][2] = (uint)((data[15] >> 2) & 0x1f);
 
-                granule.region0_count[0] = (byte)(((data[15] & 0x03) << 2)+data[16]>>6);
+                granule.region0_count[0] = (byte)(((data[15] & 0x03) << 2)+(data[16]>>6));
 
                 granule.region1_count[0] = (byte)((data[16]>>3) & 0x07);
             }
@@ -226,7 +226,7 @@ namespace MP3_analysis_player.decoder.Getheader
             granule.global_gain[0] = (ushort) ((granule.global_gain[0] << 5) + (data[5] >> 3));
 
             granule.scale_fac_compress[0] = (byte)(data[5] & 0x07);
-            granule.scale_fac_compress[0] = (byte) ((granule.scale_fac_compress[0] << 1) + data[6] >> 7);
+            granule.scale_fac_compress[0] = (byte) ((granule.scale_fac_compress[0] << 1) + (data[6] >> 7));
 
             granule.window_switching_flag[0] = (byte)((data[6] >> 6) & 0x01);
             //当上面这个为0时
@@ -266,7 +266,7 @@ namespace MP3_analysis_player.decoder.Getheader
 
             //第二个粒度
             granule.part2_3_length[1] = (uint)(data[9] & 0x1f);
-            granule.part2_3_length[1] = (uint)((granule.part2_3_length[1] << 7) + data[10]>>1);
+            granule.part2_3_length[1] = (uint)((granule.part2_3_length[1] << 7) + (data[10]>>1));
 
             granule.big_values[1] = (ushort)(data[10] & 0x01);
             granule.big_values[1] = (ushort)((granule.big_values[1] << 8) + data[11]);
@@ -285,7 +285,7 @@ namespace MP3_analysis_player.decoder.Getheader
 
                 granule.table_select[1][0] = (uint)((data[14] >> 3) & 0x1f);
 
-                granule.table_select[1][1] = (uint)(((data[14] & 0x07) << 2) + data[15] >> 6);
+                granule.table_select[1][1] = (uint)(((data[14] & 0x07) << 2) + (data[15] >> 6));
 
                 granule.subblock_gain[1][0] = (uint)((data[15] >> 3) & 0x07);
                 granule.subblock_gain[1][1] = (uint) (data[15] & 0x07);
@@ -298,14 +298,14 @@ namespace MP3_analysis_player.decoder.Getheader
                 granule.table_select[1][1] = (uint)((data[14]>>1) & 0x1f);
                 granule.table_select[1][2] = (uint)(((data[14] & 0x01) << 4)+(data[15]>>4));
 
-                granule.region0_count[0] = (byte)(data[15] & 0x0f);
+                granule.region0_count[1] = (byte)(data[15] & 0x0f);
 
-                granule.region1_count[0] = (byte)((data[16] >> 5) & 0x07);
+                granule.region1_count[1] = (byte)((data[16] >> 5) & 0x07);
             }
 
-            granule.preflag[0] = (byte)((data[16] >> 4) & 0x01);
-            granule.scalefac_scale[0] = (byte)((data[16] >> 3) & 0x01);
-            granule.count1table_select[0] = (byte)(data[16] >>2 & 0x01);
+            granule.preflag[1] = (byte)((data[16] >> 4) & 0x01);
+            granule.scalefac_scale[1] = (byte)((data[16] >> 3) & 0x01);
+            granule.count1table_select[1] = (byte)(data[16] >>2 & 0x01);
 
             return granule;
         }
@@ -320,7 +320,7 @@ namespace MP3_analysis_player.decoder.Getheader
 
             //第一个粒度
             granule.part2_3_length[0] = (uint)(data[17] & 0x3f);
-            granule.part2_3_length[0] = (uint)((granule.part2_3_length[0] << 8) + (data[18]>>2));
+            granule.part2_3_length[0] = (uint)((granule.part2_3_length[0] << 6) + (data[18]>>2));
 
             granule.big_values[0] = (ushort)(data[18] & 0x03);
             granule.big_values[0] = (ushort)((granule.big_values[0] << 7) + (data[19] >> 1));
@@ -342,7 +342,7 @@ namespace MP3_analysis_player.decoder.Getheader
                 granule.table_select[0][0] = (uint)(data[21] & 0x01);
                 granule.table_select[0][0] = (uint) ((granule.table_select[0][0] << 4) + (data[22] >> 4));
 
-                granule.table_select[0][1] = (uint)(((data[22] & 0x0f) << 1) + data[23] >> 7);
+                granule.table_select[0][1] = (uint)(((data[22] & 0x0f) << 1) + (data[23] >> 7));
 
                 granule.subblock_gain[0][0] = (uint)((data[23] >> 4) & 0x07);
                 granule.subblock_gain[0][1] = (uint)((data[23] >> 1) & 0x07);
@@ -352,7 +352,7 @@ namespace MP3_analysis_player.decoder.Getheader
             //当上面这个为1时
             else
             {
-                granule.table_select[0][0] = (uint)((data[21] & 0x0f) << 1 + (data[22] >> 7));
+                granule.table_select[0][0] = (uint)(((data[21] & 0x0f) << 1) + (data[22] >> 7));
                 granule.table_select[0][1] = (uint) ((data[22] >> 2) & 0x1f);
                 granule.table_select[0][2] = (uint)(data[22] & 0x03);
                 granule.table_select[0][2] = (uint) ((granule.table_select[0][2] << 3) + (data[23] >> 5));
@@ -370,7 +370,7 @@ namespace MP3_analysis_player.decoder.Getheader
             //第二个粒度
             granule.part2_3_length[1] = (uint)(data[24] & 0x07);
             granule.part2_3_length[1] = (uint)((granule.part2_3_length[1] << 8) + data[25]);
-            granule.part2_3_length[1] = (uint)((granule.part2_3_length[1] << 1) + data[26] >> 7);
+            granule.part2_3_length[1] = (uint)((granule.part2_3_length[1] << 1) + (data[26] >> 7));
 
             granule.big_values[1] = (ushort)(data[26] & 0x7f);
             granule.big_values[1] = (ushort)((granule.big_values[1] << 2) + (data[27] >> 6));
@@ -381,29 +381,29 @@ namespace MP3_analysis_player.decoder.Getheader
             granule.scale_fac_compress[1] = (byte)((data[28] >> 2) & 0x0f);
 
             granule.window_switching_flag[1] = (byte)((data[28] >> 1) & 0x01);
-            //当上面这个为0时
+            //当上面这个为1时
             if (granule.window_switching_flag[1] == 1)
             {
-                granule.block_type[1] = (byte)(((data[28] & 0x01) << 1) + data[29] >> 7);
+                granule.block_type[1] = (byte)(((data[28] & 0x01) << 1) + (data[29] >> 7));
 
                 granule.mixed_block_flag[1] = (byte)((data[29] >> 6) & 0x01);
 
                 granule.table_select[1][0] = (uint)((data[29] >> 1) & 0x1f);
 
-                granule.table_select[1][1] = (uint)(((data[29] & 0x01) << 4) + data[30] >> 4);
+                granule.table_select[1][1] = (uint)(((data[29] & 0x01) << 4) + (data[30] >> 4));
 
                 granule.subblock_gain[1][0] = (uint)((data[30] >> 1) & 0x07);
-                granule.subblock_gain[1][1] = (uint)(((data[30] & 0x01) << 2) + data[31] >> 6);
+                granule.subblock_gain[1][1] = (uint)(((data[30] & 0x01) << 2) + (data[31] >> 6));
                 granule.subblock_gain[1][2] = (uint)((data[31] >> 3) & 0x07);
             }
             //当上面这个为1时
             else
             {
-                granule.table_select[1][0] = (uint)((data[28] & 0x01) << 4 + (data[29] >> 4));
-                granule.table_select[1][1] = (uint)(((data[29] & 0x0f) << 1) + data[30] >> 7);
+                granule.table_select[1][0] = (uint)(((data[28] & 0x01) << 4) + (data[29] >> 4));
+                granule.table_select[1][1] = (uint)(((data[29] & 0x0f) << 1) + (data[30] >> 7));
                 granule.table_select[1][2] = (uint)((data[30] >> 2) & 0x1f);
 
-                granule.region0_count[1] = (byte)(((data[30] & 0x03) << 2) + data[31] >> 6);
+                granule.region0_count[1] = (byte)(((data[30] & 0x03) << 2) + (data[31] >> 6));
 
                 granule.region1_count[1] = (byte)((data[31] >> 3) & 0x07);
             }

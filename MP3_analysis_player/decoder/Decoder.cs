@@ -20,11 +20,18 @@ namespace MP3_analysis_player.decoder
         /// </summary>
         private Stream input;
 
-        public Decoder(Stream _input)
+        private readonly string _filename;
+
+        public Decoder(Stream _input,string filename)
         {
             input = _input;
+            _filename = filename;
         }
 
+        /// <summary>
+        /// 控制整个解码流程的主函数
+        /// </summary>
+        /// <returns></returns>
         public bool Start()
         {
             //文件头
@@ -54,7 +61,7 @@ namespace MP3_analysis_player.decoder
                     input.Read(besides_header, 0, besides_header.Length);
 
                     //进行这一帧的解码
-                    Decode decode = new Decode(headerInfo,besides_header,input);
+                    Decode decode = new Decode(headerInfo,besides_header,input,_filename);
                     decode.Start();
                 }
             }

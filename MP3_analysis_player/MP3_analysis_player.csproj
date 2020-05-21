@@ -81,6 +81,7 @@
     <Compile Include="decoder\format_definition\Data_Frame_Header_Info.cs" />
     <Compile Include="decoder\format_definition\ID3V2.cs" />
     <Compile Include="decoder\Getheader\Get_side_info.cs" />
+    <Compile Include="decoder\process\ProcessControl.cs" />
     <Compile Include="decoder\table\Table.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>

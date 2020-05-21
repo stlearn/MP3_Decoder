@@ -60,7 +60,7 @@ namespace MP3_analysis_player
             }
 
             //开始解码
-            Decoder decoder = new Decoder(input);
+            Decoder decoder = new Decoder(input,a[a.Length-1]);
             if (!decoder.Start())
             {
                 //清空文件名文本框显示
