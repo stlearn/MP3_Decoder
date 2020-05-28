@@ -32,6 +32,8 @@ namespace MP3_analysis_player.decoder.process
         internal int[] y = { 0 };
         private readonly int sfreq;
         private readonly SBI[] sfBandIndex;
+        //声道数
+        private int nch = 0;
         //哈夫曼结果
         private int[] Haffman_res = new int[576];
         //零值填充起始处记录
@@ -60,6 +62,42 @@ namespace MP3_analysis_player.decoder.process
         };
         //逆量化结果
         private readonly float[][][] dequantize_res;
+
+
+        //立体声处理变量
+        private readonly float[][] k;
+        public static readonly float[][] io =
+        {
+            new[]
+            {
+                1.0000000000e+00f, 8.4089641526e-01f, 7.0710678119e-01f, 5.9460355751e-01f, 5.0000000001e-01f,
+                4.2044820763e-01f, 3.5355339060e-01f, 2.9730177876e-01f, 2.5000000001e-01f, 2.1022410382e-01f,
+                1.7677669530e-01f, 1.4865088938e-01f, 1.2500000000e-01f, 1.0511205191e-01f, 8.8388347652e-02f,
+                7.4325444691e-02f, 6.2500000003e-02f, 5.2556025956e-02f, 4.4194173826e-02f, 3.7162722346e-02f,
+                3.1250000002e-02f, 2.6278012978e-02f, 2.2097086913e-02f, 1.8581361173e-02f, 1.5625000001e-02f,
+                1.3139006489e-02f, 1.1048543457e-02f, 9.2906805866e-03f, 7.8125000006e-03f, 6.5695032447e-03f,
+                5.5242717285e-03f, 4.6453402934e-03f
+            },
+            new[]
+            {
+                1.0000000000e+00f, 7.0710678119e-01f, 5.0000000000e-01f, 3.5355339060e-01f, 2.5000000000e-01f,
+                1.7677669530e-01f, 1.2500000000e-01f, 8.8388347650e-02f, 6.2500000001e-02f, 4.4194173825e-02f,
+                3.1250000001e-02f, 2.2097086913e-02f, 1.5625000000e-02f, 1.1048543456e-02f, 7.8125000002e-03f,
+                5.5242717282e-03f, 3.9062500001e-03f, 2.7621358641e-03f, 1.9531250001e-03f, 1.3810679321e-03f,
+                9.7656250004e-04f, 6.9053396603e-04f, 4.8828125002e-04f, 3.4526698302e-04f, 2.4414062501e-04f,
+                1.7263349151e-04f, 1.2207031251e-04f, 8.6316745755e-05f, 6.1035156254e-05f, 4.3158372878e-05f,
+                3.0517578127e-05f, 2.1579186439e-05f
+            }
+        };
+        //立体声处理结果
+        private readonly float[][][] stereo_res;
+        private int[] is_pos = new int[576];
+        private float[] is_ratio = new float[576];
+        public static readonly float[] TAN12 =
+        {
+            0.0f, 0.26794919f, 0.57735027f, 1.0f, 1.73205081f, 3.73205081f, 9.9999999e10f, -3.73205081f, -1.73205081f,
+            -1.0f, -0.57735027f, -0.26794919f, 0.0f, 0.26794919f, 0.57735027f, 1.0f
+        };
 
         static ProcessControl(){
             t_43 = create_t_43();
@@ -159,6 +197,21 @@ namespace MP3_analysis_player.decoder.process
                 }
             }
 
+            k = new float[2][];
+            for (int i6 = 0; i6 < 2; i6++)
+            {
+                k[i6] = new float[SBLIMIT * SSLIMIT];
+            }
+
+            stereo_res = new float[2][][];
+            for (int i3 = 0; i3 < 2; i3++)
+            {
+                stereo_res[i3] = new float[SBLIMIT][];
+                for (int i4 = 0; i4 < SBLIMIT; i4++)
+                {
+                    stereo_res[i3][i4] = new float[SSLIMIT];
+                }
+            }
         }
 
         private static float[] create_t_43()
@@ -178,7 +231,6 @@ namespace MP3_analysis_player.decoder.process
     /// </summary>
     public void Start()
         {
-            int nch = 0;
             //单声道
             if(_dataFrameHeaderInfo.track_mode == 3)
             {
@@ -206,9 +258,10 @@ namespace MP3_analysis_player.decoder.process
                     dequantize_sample(dequantize_res[ch], ch, gr);
                 }
 
-                /*stereo(gr);
+                //立体声处理
+                stereo(gr);
 
-                if ((which_channels == OutputChannels.DOWNMIX_CHANNELS) && (channels > 1))
+                /*if ((which_channels == OutputChannels.DOWNMIX_CHANNELS) && (channels > 1))
                     doDownMix();
 
                 for (ch = first_channel; ch <= last_channel; ch++)
@@ -663,6 +716,387 @@ namespace MP3_analysis_player.decoder.process
                 if (quotien < 0)
                     quotien = 0;
                 res[quotien][reste] = 0.0f;
+            }
+        }
+
+
+        private void i_stereo_k_values(int is_pos, int io_type, int i)
+        {
+            if (is_pos == 0)
+            {
+                k[0][i] = 1.0f;
+                k[1][i] = 1.0f;
+            }
+            else if ((is_pos & 1) != 0)
+            {
+                k[0][i] = io[io_type][Shift.URShift((is_pos + 1), 1)];
+                k[1][i] = 1.0f;
+            }
+            else
+            {
+                k[0][i] = 1.0f;
+                k[1][i] = io[io_type][Shift.URShift(is_pos, 1)];
+            }
+        }
+        /// <summary>
+        /// 立体声处理
+        /// </summary>
+        /// <param name="gr">粒度</param>
+        private void stereo(int gr)
+        {
+            int sb, ss;
+
+            //单声道
+            if (nch == 1)
+            {
+                for (sb = 0; sb < SBLIMIT; sb++)
+                    for (ss = 0; ss < SSLIMIT; ss += 3)
+                    {
+                        stereo_res[0][sb][ss] = dequantize_res[0][sb][ss];
+                        stereo_res[0][sb][ss + 1] = dequantize_res[0][sb][ss + 1];
+                        stereo_res[0][sb][ss + 2] = dequantize_res[0][sb][ss + 2];
+                    }
+            }
+            else
+            {
+                Granule gr_info;
+                if (gr == 0)
+                {
+                    gr_info = _sideInfomation.granule0;
+                }
+                else
+                {
+                    gr_info = _sideInfomation.granule1;
+                }
+
+                int mode_ext = _dataFrameHeaderInfo.stereo_mode_ext;
+                int sfb;
+                int i;
+                int lines, temp, temp2;
+
+                bool ms_stereo = ((_dataFrameHeaderInfo.track_mode == 1) && ((mode_ext & 0x2) != 0));
+                bool i_stereo = ((_dataFrameHeaderInfo.track_mode == 1) && ((mode_ext & 0x1) != 0));
+                bool lsf = false;
+
+                int io_type = (gr_info.scale_fac_compress[0] & 1);
+
+                // 初始化
+
+                for (i = 0; i < 576; i++)
+                {
+                    is_pos[i] = 7;
+
+                    is_ratio[i] = 0.0f;
+                }
+
+                if (i_stereo)
+                {
+                    if ((gr_info.window_switching_flag[0] != 0) && (gr_info.block_type[0] == 2))
+                    {
+                        if (gr_info.mixed_block_flag[0] != 0)
+                        {
+                            int max_sfb = 0;
+
+                            for (int j = 0; j < 3; j++)
+                            {
+                                int sfbcnt;
+                                sfbcnt = 2;
+                                for (sfb = 12; sfb >= 3; sfb--)
+                                {
+                                    i = sfBandIndex[sfreq].s[sfb];
+                                    lines = sfBandIndex[sfreq].s[sfb + 1] - i;
+                                    i = (i << 2) - i + (j + 1) * lines - 1;
+
+                                    while (lines > 0)
+                                    {
+                                        if (dequantize_res[1][i / 18][i % 18] != 0.0f)
+                                        {
+                                            sfbcnt = sfb;
+                                            sfb = -10;
+                                            lines = -10;
+                                        }
+
+                                        lines--;
+                                        i--;
+                                    }
+                                }
+
+                                sfb = sfbcnt + 1;
+
+                                if (sfb > max_sfb)
+                                    max_sfb = sfb;
+
+                                while (sfb < 12)
+                                {
+                                    temp = sfBandIndex[sfreq].s[sfb];
+                                    sb = sfBandIndex[sfreq].s[sfb + 1] - temp;
+                                    i = (temp << 2) - temp + j * sb;
+
+                                    for (; sb > 0; sb--)
+                                    {
+                                        is_pos[i] = scalefac[1].s[j][sfb];
+                                        if (is_pos[i] != 7)
+                                            if (lsf)
+                                                i_stereo_k_values(is_pos[i], io_type, i);
+                                            else
+                                                is_ratio[i] = TAN12[is_pos[i]];
+
+                                        i++;
+                                    }
+
+                                    sfb++;
+                                } 
+
+                                sfb = sfBandIndex[sfreq].s[10];
+                                sb = sfBandIndex[sfreq].s[11] - sfb;
+                                sfb = (sfb << 2) - sfb + j * sb;
+                                temp = sfBandIndex[sfreq].s[11];
+                                sb = sfBandIndex[sfreq].s[12] - temp;
+                                i = (temp << 2) - temp + j * sb;
+
+                                for (; sb > 0; sb--)
+                                {
+                                    is_pos[i] = is_pos[sfb];
+
+                                    if (lsf)
+                                    {
+                                        k[0][i] = k[0][sfb];
+                                        k[1][i] = k[1][sfb];
+                                    }
+                                    else
+                                    {
+                                        is_ratio[i] = is_ratio[sfb];
+                                    }
+
+                                    i++;
+                                }
+
+                            }
+
+                            if (max_sfb <= 3)
+                            {
+                                i = 2;
+                                ss = 17;
+                                sb = -1;
+                                while (i >= 0)
+                                {
+                                    if (dequantize_res[1][i][ss] != 0.0f)
+                                    {
+                                        sb = (i << 4) + (i << 1) + ss;
+                                        i = -1;
+                                    }
+                                    else
+                                    {
+                                        ss--;
+                                        if (ss < 0)
+                                        {
+                                            i--;
+                                            ss = 17;
+                                        }
+                                    }
+
+                                }
+
+                                i = 0;
+                                while (sfBandIndex[sfreq].l[i] <= sb)
+                                    i++;
+                                sfb = i;
+                                i = sfBandIndex[sfreq].l[i];
+                                for (; sfb < 8; sfb++)
+                                {
+                                    sb = sfBandIndex[sfreq].l[sfb + 1] - sfBandIndex[sfreq].l[sfb];
+                                    for (; sb > 0; sb--)
+                                    {
+                                        is_pos[i] = scalefac[1].l[sfb];
+                                        if (is_pos[i] != 7)
+                                            if (lsf)
+                                                i_stereo_k_values(is_pos[i], io_type, i);
+                                            else
+                                                is_ratio[i] = TAN12[is_pos[i]];
+                                        i++;
+                                    }
+
+                                }
+
+                            }
+
+                        }
+                        else
+                        {
+                            for (int j = 0; j < 3; j++)
+                            {
+                                int sfbcnt;
+                                sfbcnt = -1;
+                                for (sfb = 12; sfb >= 0; sfb--)
+                                {
+                                    temp = sfBandIndex[sfreq].s[sfb];
+                                    lines = sfBandIndex[sfreq].s[sfb + 1] - temp;
+                                    i = (temp << 2) - temp + (j + 1) * lines - 1;
+
+                                    while (lines > 0)
+                                    {
+                                        if (dequantize_res[1][i / 18][i % 18] != 0.0f)
+                                        {
+                                            sfbcnt = sfb;
+                                            sfb = -10;
+                                            lines = -10;
+                                        }
+
+                                        lines--;
+                                        i--;
+                                    } 
+                                }
+
+                                sfb = sfbcnt + 1;
+                                while (sfb < 12)
+                                {
+                                    temp = sfBandIndex[sfreq].s[sfb];
+                                    sb = sfBandIndex[sfreq].s[sfb + 1] - temp;
+                                    i = (temp << 2) - temp + j * sb;
+                                    for (; sb > 0; sb--)
+                                    {
+                                        is_pos[i] = scalefac[1].s[j][sfb];
+                                        if (is_pos[i] != 7)
+                                            if (lsf)
+                                                i_stereo_k_values(is_pos[i], io_type, i);
+                                            else
+                                                is_ratio[i] = TAN12[is_pos[i]];
+                                        i++;
+                                    }
+
+                                    sfb++;
+                                }
+
+                                temp = sfBandIndex[sfreq].s[10];
+                                temp2 = sfBandIndex[sfreq].s[11];
+                                sb = temp2 - temp;
+                                sfb = (temp << 2) - temp + j * sb;
+                                sb = sfBandIndex[sfreq].s[12] - temp2;
+                                i = (temp2 << 2) - temp2 + j * sb;
+
+                                for (; sb > 0; sb--)
+                                {
+                                    is_pos[i] = is_pos[sfb];
+
+                                    if (lsf)
+                                    {
+                                        k[0][i] = k[0][sfb];
+                                        k[1][i] = k[1][sfb];
+                                    }
+                                    else
+                                    {
+                                        is_ratio[i] = is_ratio[sfb];
+                                    }
+
+                                    i++;
+                                }
+
+                            }
+
+                        }
+
+                    }
+                    else
+                    {
+                        i = 31;
+                        ss = 17;
+                        sb = 0;
+                        while (i >= 0)
+                        {
+                            if (dequantize_res[1][i][ss] != 0.0f)
+                            {
+                                sb = (i << 4) + (i << 1) + ss;
+                                i = -1;
+                            }
+                            else
+                            {
+                                ss--;
+                                if (ss < 0)
+                                {
+                                    i--;
+                                    ss = 17;
+                                }
+                            }
+                        }
+
+                        i = 0;
+                        while (sfBandIndex[sfreq].l[i] <= sb)
+                            i++;
+
+                        sfb = i;
+                        i = sfBandIndex[sfreq].l[i];
+                        for (; sfb < 21; sfb++)
+                        {
+                            sb = sfBandIndex[sfreq].l[sfb + 1] - sfBandIndex[sfreq].l[sfb];
+                            for (; sb > 0; sb--)
+                            {
+                                is_pos[i] = scalefac[1].l[sfb];
+                                if (is_pos[i] != 7)
+                                    if (lsf)
+                                        i_stereo_k_values(is_pos[i], io_type, i);
+                                    else
+                                        is_ratio[i] = TAN12[is_pos[i]];
+                                i++;
+                            }
+                        }
+
+                        sfb = sfBandIndex[sfreq].l[20];
+                        for (sb = 576 - sfBandIndex[sfreq].l[21]; (sb > 0) && (i < 576); sb--)
+                        {
+                            is_pos[i] = is_pos[sfb]; // error here : i >=576
+
+                            if (lsf)
+                            {
+                                k[0][i] = k[0][sfb];
+                                k[1][i] = k[1][sfb];
+                            }
+                            else
+                            {
+                                is_ratio[i] = is_ratio[sfb];
+                            }
+
+                            i++;
+                        }
+
+                    }
+
+                }
+
+                i = 0;
+                for (sb = 0; sb < SBLIMIT; sb++)
+                for (ss = 0; ss < SSLIMIT; ss++)
+                {
+                    if (is_pos[i] == 7)
+                    {
+                        if (ms_stereo)
+                        {
+                            stereo_res[0][sb][ss] =
+                                (dequantize_res[0][sb][ss] + dequantize_res[1][sb][ss]) * 0.707106781f;
+                            stereo_res[1][sb][ss] =
+                                (dequantize_res[0][sb][ss] - dequantize_res[1][sb][ss]) * 0.707106781f;
+                        }
+                        else
+                        {
+                            stereo_res[0][sb][ss] = dequantize_res[0][sb][ss];
+                            stereo_res[1][sb][ss] = dequantize_res[1][sb][ss];
+                        }
+                    }
+                    else if (i_stereo)
+                    {
+                        if (lsf)
+                        {
+                            stereo_res[0][sb][ss] = dequantize_res[0][sb][ss] * k[0][i];
+                            stereo_res[1][sb][ss] = dequantize_res[0][sb][ss] * k[1][i];
+                        }
+                        else
+                        {
+                            stereo_res[1][sb][ss] = dequantize_res[0][sb][ss] / (1 + is_ratio[i]);
+                            stereo_res[0][sb][ss] = stereo_res[1][sb][ss] * is_ratio[i];
+                        }
+                    }
+
+                    i++;
+                }
             }
         }
     }
