@@ -76,12 +76,17 @@
     <Compile Include="decoder\Decode.cs" />
     <Compile Include="decoder\Decoder.cs" />
     <Compile Include="decoder\format_definition\Granule.cs" />
+    <Compile Include="decoder\format_definition\ScaleFac.cs" />
     <Compile Include="decoder\format_definition\Side_Infomation.cs" />
+    <Compile Include="decoder\GetBit.cs" />
     <Compile Include="decoder\Getheader\Data_Frame_Header.cs" />
     <Compile Include="decoder\format_definition\Data_Frame_Header_Info.cs" />
     <Compile Include="decoder\format_definition\ID3V2.cs" />
     <Compile Include="decoder\Getheader\Get_side_info.cs" />
+    <Compile Include="decoder\process\Huffman.cs" />
     <Compile Include="decoder\process\ProcessControl.cs" />
+    <Compile Include="decoder\process\SBI.cs" />
+    <Compile Include="decoder\process\SupportClass.cs" />
     <Compile Include="decoder\table\Table.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
@@ -111,6 +116,7 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="ClassDiagram1.cd" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

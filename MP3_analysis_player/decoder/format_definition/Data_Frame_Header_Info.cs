@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace MP3_analysis_player.decoder.format_definition
 {
+    /// <summary>
+    /// 四字节数据帧头部
+    /// </summary>
     class Data_Frame_Header_Info
     {
         //数据帧头部内容

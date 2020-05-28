@@ -118,5 +118,28 @@ namespace MP3_analysis_player.decoder.format_definition
         /// </summary>
         public byte[] count1table_select = new byte[2];
 
+        public byte[] slen1 = new byte[2];
+        public byte[] slen2 = new byte[2];
+
+        public int[][] slen =
+        {
+            new[] {0, 0},
+            new[] {0, 1},
+            new[] {0, 2},
+            new[] {0, 3},
+            new[] {3, 0},
+            new[] {1, 1},
+            new[] {1, 2},
+            new[] {1, 3},
+            new[] {2, 1},
+            new[] {2, 2},
+            new[] {2, 3},
+            new[] {3, 1},
+            new[] {3, 2},
+            new[] {3, 3},
+            new[] {4, 2},
+            new[] {4, 3},
+        };
+
     }
 }
