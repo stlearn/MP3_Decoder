@@ -1,2 +1,2 @@
 # MP3_Decoder
-### 用vs2019可打开
+### 支持mpeg1 layer3解码
