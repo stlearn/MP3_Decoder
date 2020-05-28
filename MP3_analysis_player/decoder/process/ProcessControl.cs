@@ -31,8 +31,39 @@ namespace MP3_analysis_player.decoder.process
         internal int[] x = { 0 };
         internal int[] y = { 0 };
         private readonly int sfreq;
-        private readonly SBI[] sfBandIndex; // Init in the constructor.
+        private readonly SBI[] sfBandIndex;
+        //哈夫曼结果
         private int[] Haffman_res = new int[576];
+        //零值填充起始处记录
+        private int[] nonzero = new []{576,576};
+
+        //反量化变量
+        private const int SSLIMIT = 18;
+        private const int SBLIMIT = 32;
+        public static readonly int[] pretab = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 2, 0 };
+        public static readonly float[] t_43;
+        public static readonly float[] two_to_negative_half_pow =
+        {
+            1.0000000000e+00f, 7.0710678119e-01f, 5.0000000000e-01f, 3.5355339059e-01f, 2.5000000000e-01f,
+            1.7677669530e-01f, 1.2500000000e-01f, 8.8388347648e-02f, 6.2500000000e-02f, 4.4194173824e-02f,
+            3.1250000000e-02f, 2.2097086912e-02f, 1.5625000000e-02f, 1.1048543456e-02f, 7.8125000000e-03f,
+            5.5242717280e-03f, 3.9062500000e-03f, 2.7621358640e-03f, 1.9531250000e-03f, 1.3810679320e-03f,
+            9.7656250000e-04f, 6.9053396600e-04f, 4.8828125000e-04f, 3.4526698300e-04f, 2.4414062500e-04f,
+            1.7263349150e-04f, 1.2207031250e-04f, 8.6316745750e-05f, 6.1035156250e-05f, 4.3158372875e-05f,
+            3.0517578125e-05f, 2.1579186438e-05f, 1.5258789062e-05f, 1.0789593219e-05f, 7.6293945312e-06f,
+            5.3947966094e-06f, 3.8146972656e-06f, 2.6973983047e-06f, 1.9073486328e-06f, 1.3486991523e-06f,
+            9.5367431641e-07f, 6.7434957617e-07f, 4.7683715820e-07f, 3.3717478809e-07f, 2.3841857910e-07f,
+            1.6858739404e-07f, 1.1920928955e-07f, 8.4293697022e-08f, 5.9604644775e-08f, 4.2146848511e-08f,
+            2.9802322388e-08f, 2.1073424255e-08f, 1.4901161194e-08f, 1.0536712128e-08f, 7.4505805969e-09f,
+            5.2683560639e-09f, 3.7252902985e-09f, 2.6341780319e-09f, 1.8626451492e-09f, 1.3170890160e-09f,
+            9.3132257462e-10f, 6.5854450798e-10f, 4.6566128731e-10f, 3.2927225399e-10f
+        };
+        //逆量化结果
+        private readonly float[][][] dequantize_res;
+
+        static ProcessControl(){
+            t_43 = create_t_43();
+        }
 
         public ProcessControl(Data_Frame_Header_Info dataFrameHeaderInfo,Side_Infomation sideInfomation,byte[] mainDatas,string filename)
         {
@@ -47,7 +78,7 @@ namespace MP3_analysis_player.decoder.process
             }
 
             Huffman.Initialize();
-            sfBandIndex = new SBI[9]; // SZD: MPEG2.5 +3 indices
+            sfBandIndex = new SBI[9];
             int[] l0 =
             {
                 0, 6, 12, 18, 24, 30, 36, 44, 54, 66, 80, 96, 116, 140, 168, 200, 238, 284, 336, 396, 464, 522,
@@ -83,7 +114,7 @@ namespace MP3_analysis_player.decoder.process
                 576
             };
             int[] s5 = { 0, 4, 8, 12, 16, 22, 30, 42, 58, 78, 104, 138, 180, 192 };
-            // SZD: MPEG2.5
+
             int[] l6 =
             {
                 0, 6, 12, 18, 24, 30, 36, 44, 54, 66, 80, 96, 116, 140, 168, 200, 238, 284, 336, 396, 464, 522,
@@ -110,19 +141,42 @@ namespace MP3_analysis_player.decoder.process
             sfBandIndex[3] = new SBI(l3, s3);
             sfBandIndex[4] = new SBI(l4, s4);
             sfBandIndex[5] = new SBI(l5, s5);
-            //SZD: MPEG2.5
+
             sfBandIndex[6] = new SBI(l6, s6);
             sfBandIndex[7] = new SBI(l7, s7);
             sfBandIndex[8] = new SBI(l8, s8);
-            // END OF L3TABLE INIT
+
             sfreq = _dataFrameHeaderInfo.sampling_frequency +
-                    ((_dataFrameHeaderInfo.version == 1) ? 3 : 0); // SZD
+                    ((_dataFrameHeaderInfo.version == 1) ? 3 : 0);
+
+            dequantize_res = new float[2][][];
+            for (int i = 0; i < 2; i++)
+            {
+                dequantize_res[i] = new float[SBLIMIT][];
+                for (int i2 = 0; i2 < SBLIMIT; i2++)
+                {
+                    dequantize_res[i][i2] = new float[SSLIMIT];
+                }
+            }
+
         }
 
-        /// <summary>
-        /// 开始解码并输出为文件
-        /// </summary>
-        public void Start()
+        private static float[] create_t_43()
+        {
+            float[] t43 = new float[8192];
+            double d43 = (4.0 / 3.0);
+
+            for (int i = 0; i < 8192; i++)
+            {
+                t43[i] = (float)Math.Pow(i, d43);
+            }
+            return t43;
+        }
+
+    /// <summary>
+    /// 开始解码并输出为文件
+    /// </summary>
+    public void Start()
         {
             int nch = 0;
             //单声道
@@ -149,7 +203,7 @@ namespace MP3_analysis_player.decoder.process
                     HuffmanDecode(ch, gr);
 
                     //逆量化
-                    dequantize_sample(ro[ch], ch, gr);
+                    dequantize_sample(dequantize_res[ch], ch, gr);
                 }
 
                 /*stereo(gr);
@@ -241,7 +295,7 @@ namespace MP3_analysis_player.decoder.process
             {
                 if ((gr_info.mixed_block_flag[ch]) != 0)
                 {
-                    // MIXED
+                    //混合块
                     for (sfb = 0; sfb < 8; sfb++)
                         scalefac[ch].l[sfb] = getBit.ReadBits(length0);
                     for (sfb = 3; sfb < 6; sfb++)
@@ -255,7 +309,7 @@ namespace MP3_analysis_player.decoder.process
                 }
                 else
                 {
-                    // SHORT
+                    //短块
 
                     scalefac[ch].s[0][0] = getBit.ReadBits(length0);
                     scalefac[ch].s[1][0] = getBit.ReadBits(length0);
@@ -297,11 +351,10 @@ namespace MP3_analysis_player.decoder.process
                     scalefac[ch].s[1][12] = 0;
                     scalefac[ch].s[2][12] = 0;
                 }
-                // SHORT
             }
             else
             {
-                // LONG types 0,1,3
+                // 长块 0,1,3
 
                 if ((_sideInfomation.scfsi[ch][0] == 0) || (gr == 0))
                 {
@@ -375,18 +428,13 @@ namespace MP3_analysis_player.decoder.process
 
             Huffman h;
 
-            // Find region boundary for short block case
-
             if (((gr_info.window_switching_flag[ch]) != 0) && (gr_info.block_type[ch] == 2))
             {
-                // Region2.
-                //MS: Extrahandling for 8KHZ
-                region1Start = (sfreq == 8) ? 72 : 36; // sfb[9/3]*3=36 or in case 8KHZ = 72
-                region2Start = 576; // No Region2 for short block case
+                region1Start = (sfreq == 8) ? 72 : 36; 
+                region2Start = 576; 
             }
             else
             {
-                // Find region boundary for long block case
                 buf = gr_info.region0_count[ch] + 1;
                 buf1 = buf + gr_info.region1_count[ch] + 1;
 
@@ -394,11 +442,11 @@ namespace MP3_analysis_player.decoder.process
                     buf1 = sfBandIndex[sfreq].l.Length - 1;
 
                 region1Start = sfBandIndex[sfreq].l[buf];
-                region2Start = sfBandIndex[sfreq].l[buf1]; /* MI */
+                region2Start = sfBandIndex[sfreq].l[buf1];
             }
 
             index = 0;
-            // Read bigvalues area
+            // 读大值区
             for (int i = 0; i < (gr_info.big_values[ch] << 1); i += 2)
             {
                 if (i < region1Start)
@@ -412,11 +460,9 @@ namespace MP3_analysis_player.decoder.process
 
                 Haffman_res[index++] = x[0];
                 Haffman_res[index++] = y[0];
-                //CheckSumHuff = CheckSumHuff + x[0] + y[0];
-                // System.out.println("x = "+x[0]+" y = "+y[0]);
             }
 
-            // Read count1 area
+            // 读count1区
             h = Huffman.ht[gr_info.count1table_select[ch] + 32];
             num_bits = getBit.hsstell();
 
@@ -428,9 +474,6 @@ namespace MP3_analysis_player.decoder.process
                 Haffman_res[index++] = w[0];
                 Haffman_res[index++] = x[0];
                 Haffman_res[index++] = y[0];
-                //CheckSumHuff = CheckSumHuff + v[0] + w[0] + x[0] + y[0];
-                // System.out.println("v = "+v[0]+" w = "+w[0]);
-                // System.out.println("x = "+x[0]+" y = "+y[0]);
                 num_bits = getBit.hsstell();
             }
 
@@ -448,17 +491,179 @@ namespace MP3_analysis_player.decoder.process
 
             // Zero out rest
 
-            // if (index < 576)
-            //     nonzero[ch] = index;
-            // else
-            //     nonzero[ch] = 576;
+            if (index < 576)
+                nonzero[ch] = index;
+            else
+                nonzero[ch] = 576;
 
             if (index < 0)
                 index = 0;
 
-            // may not be necessary
+            //填充0区
             for (; index < 576; index++)
                 Haffman_res[index] = 0;
+        }
+
+        /// <summary>
+        /// 逆量化
+        /// </summary>
+        /// <param name="xr"></param>
+        /// <param name="ch"></param>
+        /// <param name="gr"></param>
+        private void dequantize_sample(float[][] xr, int ch, int gr)
+        {
+
+            Granule gr_info;
+            if (gr == 0)
+            {
+                gr_info = _sideInfomation.granule0;
+            }
+            else
+            {
+                gr_info = _sideInfomation.granule1;
+            }
+
+            int cb = 0;
+            int next_cb_boundary;
+            int cb_begin = 0;
+            int cb_width = 0;
+            int index = 0, t_index, j;
+            float g_gain;
+            float[][] res = xr;
+
+            // 确定当前缩放因子带，初始化边界
+
+            if ((gr_info.window_switching_flag[ch] != 0) && (gr_info.block_type[ch] == 2))
+            {
+                if (gr_info.mixed_block_flag[ch] != 0)
+                    next_cb_boundary = sfBandIndex[sfreq].l[1];
+                // 长块: 0,1,3
+                else
+                {
+                    cb_width = sfBandIndex[sfreq].s[1];
+                    next_cb_boundary = (cb_width << 2) - cb_width;
+                    cb_begin = 0;
+                }
+            }
+            else
+            {
+                next_cb_boundary = sfBandIndex[sfreq].l[1]; // 长块: 0,1,3
+            }
+
+            // 计算全局缩放因子
+
+            g_gain = (float)Math.Pow(2.0, (0.25 * (gr_info.global_gain[ch] - 210.0)));
+
+            for (j = 0; j < nonzero[ch]; j++)
+            {
+                int reste = j % SSLIMIT;
+                int quotien = (j - reste) / SSLIMIT;
+                if (Haffman_res[j] == 0)
+                    res[quotien][reste] = 0.0f;
+                else
+                {
+                    int abv = Haffman_res[j];
+                    if (Haffman_res[j] > 0)
+                        res[quotien][reste] = g_gain * t_43[abv];
+                    else
+                        res[quotien][reste] = -g_gain * t_43[-abv];
+                }
+            }
+
+            // 通过块类型，求逆量化公式
+
+            for (j = 0; j < nonzero[ch]; j++)
+            {
+                int reste = j % SSLIMIT;
+                int quotien = (j - reste) / SSLIMIT;
+
+                if (index == next_cb_boundary)
+                {
+                    if ((gr_info.window_switching_flag[ch] != 0) && (gr_info.block_type[ch] == 2))
+                    {
+                        if (gr_info.mixed_block_flag[ch] != 0)
+                        {
+                            if (index == sfBandIndex[sfreq].l[8])
+                            {
+                                next_cb_boundary = sfBandIndex[sfreq].s[4];
+                                next_cb_boundary = (next_cb_boundary << 2) - next_cb_boundary;
+                                cb = 3;
+                                cb_width = sfBandIndex[sfreq].s[4] - sfBandIndex[sfreq].s[3];
+
+                                cb_begin = sfBandIndex[sfreq].s[3];
+                                cb_begin = (cb_begin << 2) - cb_begin;
+                            }
+                            else if (index < sfBandIndex[sfreq].l[8])
+                            {
+                                next_cb_boundary = sfBandIndex[sfreq].l[(++cb) + 1];
+                            }
+                            else
+                            {
+                                next_cb_boundary = sfBandIndex[sfreq].s[(++cb) + 1];
+                                next_cb_boundary = (next_cb_boundary << 2) - next_cb_boundary;
+
+                                cb_begin = sfBandIndex[sfreq].s[cb];
+                                cb_width = sfBandIndex[sfreq].s[cb + 1] - cb_begin;
+                                cb_begin = (cb_begin << 2) - cb_begin;
+                            }
+                        }
+                        else
+                        {
+                            next_cb_boundary = sfBandIndex[sfreq].s[(++cb) + 1];
+                            next_cb_boundary = (next_cb_boundary << 2) - next_cb_boundary;
+
+                            cb_begin = sfBandIndex[sfreq].s[cb];
+                            cb_width = sfBandIndex[sfreq].s[cb + 1] - cb_begin;
+                            cb_begin = (cb_begin << 2) - cb_begin;
+                        }
+                    }
+                    else
+                    {
+                        //长块 blocks
+
+                        next_cb_boundary = sfBandIndex[sfreq].l[(++cb) + 1];
+                    }
+                }
+
+                if ((gr_info.window_switching_flag[ch] != 0) &&
+                    (((gr_info.block_type[ch] == 2) && (gr_info.mixed_block_flag[ch] == 0)) ||
+                     ((gr_info.block_type[ch] == 2) && (gr_info.mixed_block_flag[ch] != 0) && (j >= 36))))
+                {
+                    t_index = (index - cb_begin) / cb_width;
+                    /*xr[sb][ss] *= pow(2.0, ((-2.0 * gr_info.subblock_gain[t_index])
+					-(0.5 * (1.0 + gr_info.scalefac_scale)
+					* scalefac[ch].s[t_index][cb]))); */
+                    int idx = scalefac[ch].s[t_index][cb] << gr_info.scalefac_scale[ch];
+                    idx += (int)(gr_info.subblock_gain[ch][t_index] << 2);
+
+                    res[quotien][reste] *= two_to_negative_half_pow[idx];
+                }
+                else
+                {
+                    /*xr[sb][ss] *= pow(2.0, -0.5 * (1.0+gr_info.scalefac_scale)
+					* (scalefac[ch].l[cb]
+					+ gr_info.preflag * pretab[cb])); */
+                    int idx = scalefac[ch].l[cb];
+
+                    if (gr_info.preflag[ch] != 0)
+                        idx += pretab[cb];
+
+                    idx = idx << gr_info.scalefac_scale[ch];
+                    res[quotien][reste] *= two_to_negative_half_pow[idx];
+                }
+                index++;
+            }
+
+            for (j = nonzero[ch]; j < 576; j++)
+            {
+                int reste = j % SSLIMIT;
+                int quotien = (j - reste) / SSLIMIT;
+                if (reste < 0)
+                    reste = 0;
+                if (quotien < 0)
+                    quotien = 0;
+                res[quotien][reste] = 0.0f;
+            }
         }
     }
 

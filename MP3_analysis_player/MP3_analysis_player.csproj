@@ -86,7 +86,7 @@
     <Compile Include="decoder\process\Huffman.cs" />
     <Compile Include="decoder\process\ProcessControl.cs" />
     <Compile Include="decoder\process\SBI.cs" />
-    <Compile Include="decoder\process\SupportClass.cs" />
+    <Compile Include="decoder\process\Shift.cs" />
     <Compile Include="decoder\table\Table.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
@@ -116,7 +116,6 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <None Include="ClassDiagram1.cd" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

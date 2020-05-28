@@ -749,7 +749,7 @@ namespace MP3_analysis_player.decoder.process
                 if (h.val[point][0] == 0)
                 {
                     /*end of tree*/
-                    x[0] = SupportClass.URShift(h.val[point][1], 4);
+                    x[0] = Shift.URShift(h.val[point][1], 4);
                     y[0] = h.val[point][1] & 0xf;
                     error = 0;
                     break;
@@ -777,7 +777,7 @@ namespace MP3_analysis_player.decoder.process
                         point += h.val[point][0];
                     point += h.val[point][0];
                 }
-                level = SupportClass.URShift(level, 1);
+                level = Shift.URShift(level, 1);
                 // MDM: ht[0] is always 0;
             } while ((level != 0) || (point < 0));
 
