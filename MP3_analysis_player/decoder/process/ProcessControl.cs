@@ -103,6 +103,76 @@ namespace MP3_analysis_player.decoder.process
         private static int[][] reorder_table;
         private readonly float[] out_1d;
 
+        //混叠重建变量
+        private static readonly float[] cs =
+        {
+            0.857492925712f, 0.881741997318f, 0.949628649103f, 0.983314592492f, 0.995517816065f, 0.999160558175f,
+            0.999899195243f, 0.999993155067f
+        };
+
+        private static readonly float[] ca =
+        {
+            -0.5144957554270f, -0.4717319685650f, -0.3133774542040f, -0.1819131996110f, -0.0945741925262f,
+            -0.0409655828852f, -0.0141985685725f, -0.00369997467375f
+        };
+
+
+        //逆向离散余弦变换变量
+        internal float[] tsOutCopy = new float[18];
+        public static readonly float[][] win =
+        {
+            new[]
+            {
+                -1.6141214951e-02f, -5.3603178919e-02f, -1.0070713296e-01f, -1.6280817573e-01f, -4.9999999679e-01f,
+                -3.8388735032e-01f, -6.2061144372e-01f, -1.1659756083e+00f, -3.8720752656e+00f, -4.2256286556e+00f,
+                -1.5195289984e+00f, -9.7416483388e-01f, -7.3744074053e-01f, -1.2071067773e+00f, -5.1636156596e-01f,
+                -4.5426052317e-01f, -4.0715656898e-01f, -3.6969460527e-01f, -3.3876269197e-01f, -3.1242222492e-01f,
+                -2.8939587111e-01f, -2.6880081906e-01f, -5.0000000266e-01f, -2.3251417468e-01f, -2.1596714708e-01f,
+                -2.0004979098e-01f, -1.8449493497e-01f, -1.6905846094e-01f, -1.5350360518e-01f, -1.3758624925e-01f,
+                -1.2103922149e-01f, -2.0710679058e-01f, -8.4752577594e-02f, -6.4157525656e-02f, -4.1131172614e-02f,
+                -1.4790705759e-02f
+            },
+            new[]
+            {
+                -1.6141214951e-02f, -5.3603178919e-02f, -1.0070713296e-01f, -1.6280817573e-01f, -4.9999999679e-01f,
+                -3.8388735032e-01f, -6.2061144372e-01f, -1.1659756083e+00f, -3.8720752656e+00f, -4.2256286556e+00f,
+                -1.5195289984e+00f, -9.7416483388e-01f, -7.3744074053e-01f, -1.2071067773e+00f, -5.1636156596e-01f,
+                -4.5426052317e-01f, -4.0715656898e-01f, -3.6969460527e-01f, -3.3908542600e-01f, -3.1511810350e-01f,
+                -2.9642226150e-01f, -2.8184548650e-01f, -5.4119610000e-01f, -2.6213228100e-01f, -2.5387916537e-01f,
+                -2.3296291359e-01f, -1.9852728987e-01f, -1.5233534808e-01f, -9.6496400054e-02f, -3.3423828516e-02f,
+                0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f,
+                0.0000000000e+00f
+            },
+            new[]
+            {
+                -4.8300800645e-02f, -1.5715656932e-01f, -2.8325045177e-01f, -4.2953747763e-01f, -1.2071067795e+00f,
+                -8.2426483178e-01f, -1.1451749106e+00f, -1.7695290101e+00f, -4.5470225061e+00f, -3.4890531002e+00f,
+                -7.3296292804e-01f, -1.5076514758e-01f, 0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f,
+                0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f,
+                0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f,
+                0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f,
+                0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f,
+                0.0000000000e+00f
+            },
+            new[]
+            {
+                0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f, 0.0000000000e+00f,
+                0.0000000000e+00f, -1.5076513660e-01f, -7.3296291107e-01f, -3.4890530566e+00f, -4.5470224727e+00f,
+                -1.7695290031e+00f, -1.1451749092e+00f, -8.3137738100e-01f, -1.3065629650e+00f, -5.4142014250e-01f,
+                -4.6528974900e-01f, -4.1066990750e-01f, -3.7004680800e-01f, -3.3876269197e-01f, -3.1242222492e-01f,
+                -2.8939587111e-01f, -2.6880081906e-01f, -5.0000000266e-01f, -2.3251417468e-01f, -2.1596714708e-01f,
+                -2.0004979098e-01f,
+                -1.8449493497e-01f, -1.6905846094e-01f, -1.5350360518e-01f, -1.3758624925e-01f, -1.2103922149e-01f,
+                -2.0710679058e-01f, -8.4752577594e-02f, -6.4157525656e-02f, -4.1131172614e-02f, -1.4790705759e-02f
+            }
+        };
+        private readonly float[][] prevblck;
+        internal float[] rawout = new float[36];
+
+        //子带合成变量
+        private float[] samples1 = new float[32];
+        private float[] samples2 = new float[32];
+
         /// <summary>
         /// 静态初始化函数
         /// </summary>
@@ -227,6 +297,12 @@ namespace MP3_analysis_player.decoder.process
             }
 
             out_1d = new float[SBLIMIT * SSLIMIT];
+
+            prevblck = new float[2][];
+            for (int i5 = 0; i5 < 2; i5++)
+            {
+                prevblck[i5] = new float[SBLIMIT * SSLIMIT];
+            }
         }
 
         private static float[] create_t_43()
@@ -278,39 +354,36 @@ namespace MP3_analysis_player.decoder.process
 
                 // if ((which_channels == OutputChannels.DOWNMIX_CHANNELS) && (nch > 1))
                 //     doDownMix();
+                int ss, sb, sb18;
                 for (int ch = 0; ch < nch; ch++)
                 {
                     //重排序
                     Reorder(stereo_res[ch], ch, gr);
-                    /*
+                    
+                    //混叠重建
                     Antialias(ch, gr);
-                    //for (int hb = 0;hb<576;hb++) CheckSumOut1d = CheckSumOut1d + out_1d[hb];
-                    //System.out.println("CheckSumOut1d = "+CheckSumOut1d);
 
+                    //逆向离散余弦变换
                     Hybrid(ch, gr);
 
-                    //for (int hb = 0;hb<576;hb++) CheckSumOut1d = CheckSumOut1d + out_1d[hb];
-                    //System.out.println("CheckSumOut1d = "+CheckSumOut1d);
 
                     for (sb18 = 18; sb18 < 576; sb18 += 36)
-                        // Frequency inversion
+                        //频率反转
                         for (ss = 1; ss < SSLIMIT; ss += 2)
                             out_1d[sb18 + ss] = -out_1d[sb18 + ss];
 
-                    if ((ch == 0) || (which_channels == OutputChannels.RIGHT_CHANNEL))
+                    if ((ch == 0) || nch == 2)
                     {
                         for (ss = 0; ss < SSLIMIT; ss++)
                         {
-                            // Polyphase synthesis
+                            //子带合成
                             sb = 0;
                             for (sb18 = 0; sb18 < 576; sb18 += 18)
                             {
                                 samples1[sb] = out_1d[sb18 + ss];
-                                //filter1.input_sample(out_1d[sb18+ss], sb);
                                 sb++;
                             }
-                            //buffer.appendSamples(0, samples1);
-                            //Console.WriteLine("Adding samples right into output buffer");
+
                             filter1.WriteAllSamples(samples1);
                             filter1.calculate_pcm_samples(buffer);
                         }
@@ -332,9 +405,8 @@ namespace MP3_analysis_player.decoder.process
                             filter2.WriteAllSamples(samples2);
                             filter2.calculate_pcm_samples(buffer);
                         }
-                    }*/
+                    }
                 }
-                // channels
             }
         }
 
@@ -1119,9 +1191,9 @@ namespace MP3_analysis_player.decoder.process
         /// <summary>
         /// 重排序
         /// </summary>
-        /// <param name="xr"></param>
-        /// <param name="ch"></param>
-        /// <param name="gr"></param>
+        /// <param name="xr">输入数据</param>
+        /// <param name="ch">声道</param>
+        /// <param name="gr">粒度</param>
         private void Reorder(float[][] xr, int ch, int gr)
         {
 
@@ -1234,6 +1306,482 @@ namespace MP3_analysis_player.decoder.process
                     ix[3 * i + window] = j++;
             }
             return ix;
+        }
+
+        /// <summary>
+        /// 混叠重建函数
+        /// </summary>
+        /// <param name="ch">声道</param>
+        /// <param name="gr">粒度</param>
+        private void Antialias(int ch, int gr)
+        {
+            int sb18, ss, sb18lim;
+            Granule gr_info;
+            if (gr == 0)
+            {
+                gr_info = _sideInfomation.granule0;
+            }
+            else
+            {
+                gr_info = _sideInfomation.granule1;
+            }
+
+
+            if ((gr_info.window_switching_flag[ch] != 0) && (gr_info.block_type[ch] == 2) && !(gr_info.mixed_block_flag[ch] != 0))
+                return;
+
+            if ((gr_info.window_switching_flag[ch] != 0) && (gr_info.mixed_block_flag[ch] != 0) && (gr_info.block_type[ch] == 2))
+            {
+                sb18lim = 18;
+            }
+            else
+            {
+                sb18lim = 558;
+            }
+
+            for (sb18 = 0; sb18 < sb18lim; sb18 += 18)
+            {
+                for (ss = 0; ss < 8; ss++)
+                {
+                    int src_idx1 = sb18 + 17 - ss;
+                    int src_idx2 = sb18 + 18 + ss;
+                    float bu = out_1d[src_idx1];
+                    float bd = out_1d[src_idx2];
+                    out_1d[src_idx1] = (bu * cs[ss]) - (bd * ca[ss]);
+                    out_1d[src_idx2] = (bd * cs[ss]) + (bu * ca[ss]);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 逆向离散余弦变换
+        /// </summary>
+        /// <param name="ch"></param>
+        /// <param name="gr"></param>
+        private void Hybrid(int ch, int gr)
+        {
+            int bt;
+            int sb18;
+
+            Granule gr_info;
+            if (gr == 0)
+            {
+                gr_info = _sideInfomation.granule0;
+            }
+            else
+            {
+                gr_info = _sideInfomation.granule1;
+            }
+
+            float[] tsOut;
+
+            float[][] prvblk;
+
+            for (sb18 = 0; sb18 < 576; sb18 += 18)
+            {
+                bt = ((gr_info.window_switching_flag[ch] != 0) && (gr_info.mixed_block_flag[ch] != 0) && (sb18 < 36))
+                    ? 0
+                    : gr_info.block_type[ch];
+
+                tsOut = out_1d;
+                // Modif E.B 02/22/99
+                for (int cc = 0; cc < 18; cc++)
+                    tsOutCopy[cc] = tsOut[cc + sb18];
+
+                InverseMDCT(tsOutCopy, rawout, bt);
+
+                for (int cc = 0; cc < 18; cc++)
+                    tsOut[cc + sb18] = tsOutCopy[cc];
+                // Fin Modif
+
+                // overlap addition
+                prvblk = prevblck;
+
+                tsOut[0 + sb18] = rawout[0] + prvblk[ch][sb18 + 0];
+                prvblk[ch][sb18 + 0] = rawout[18];
+                tsOut[1 + sb18] = rawout[1] + prvblk[ch][sb18 + 1];
+                prvblk[ch][sb18 + 1] = rawout[19];
+                tsOut[2 + sb18] = rawout[2] + prvblk[ch][sb18 + 2];
+                prvblk[ch][sb18 + 2] = rawout[20];
+                tsOut[3 + sb18] = rawout[3] + prvblk[ch][sb18 + 3];
+                prvblk[ch][sb18 + 3] = rawout[21];
+                tsOut[4 + sb18] = rawout[4] + prvblk[ch][sb18 + 4];
+                prvblk[ch][sb18 + 4] = rawout[22];
+                tsOut[5 + sb18] = rawout[5] + prvblk[ch][sb18 + 5];
+                prvblk[ch][sb18 + 5] = rawout[23];
+                tsOut[6 + sb18] = rawout[6] + prvblk[ch][sb18 + 6];
+                prvblk[ch][sb18 + 6] = rawout[24];
+                tsOut[7 + sb18] = rawout[7] + prvblk[ch][sb18 + 7];
+                prvblk[ch][sb18 + 7] = rawout[25];
+                tsOut[8 + sb18] = rawout[8] + prvblk[ch][sb18 + 8];
+                prvblk[ch][sb18 + 8] = rawout[26];
+                tsOut[9 + sb18] = rawout[9] + prvblk[ch][sb18 + 9];
+                prvblk[ch][sb18 + 9] = rawout[27];
+                tsOut[10 + sb18] = rawout[10] + prvblk[ch][sb18 + 10];
+                prvblk[ch][sb18 + 10] = rawout[28];
+                tsOut[11 + sb18] = rawout[11] + prvblk[ch][sb18 + 11];
+                prvblk[ch][sb18 + 11] = rawout[29];
+                tsOut[12 + sb18] = rawout[12] + prvblk[ch][sb18 + 12];
+                prvblk[ch][sb18 + 12] = rawout[30];
+                tsOut[13 + sb18] = rawout[13] + prvblk[ch][sb18 + 13];
+                prvblk[ch][sb18 + 13] = rawout[31];
+                tsOut[14 + sb18] = rawout[14] + prvblk[ch][sb18 + 14];
+                prvblk[ch][sb18 + 14] = rawout[32];
+                tsOut[15 + sb18] = rawout[15] + prvblk[ch][sb18 + 15];
+                prvblk[ch][sb18 + 15] = rawout[33];
+                tsOut[16 + sb18] = rawout[16] + prvblk[ch][sb18 + 16];
+                prvblk[ch][sb18 + 16] = rawout[34];
+                tsOut[17 + sb18] = rawout[17] + prvblk[ch][sb18 + 17];
+                prvblk[ch][sb18 + 17] = rawout[35];
+            }
+        }
+
+        /// <summary>
+        /// 快速离散余弦变幻
+        /// </summary>
+        /// <param name="inValues"></param>
+        /// <param name="outValues"></param>
+        /// <param name="blockType"></param>
+        public void InverseMDCT(float[] inValues, float[] outValues, int blockType)
+        {
+            float tmpf_0, tmpf_1, tmpf_2, tmpf_3, tmpf_4, tmpf_5, tmpf_6, tmpf_7, tmpf_8, tmpf_9;
+            float tmpf_10, tmpf_11, tmpf_12, tmpf_13, tmpf_14, tmpf_15, tmpf_16, tmpf_17;
+            tmpf_0 = tmpf_1 = tmpf_2 = tmpf_3 = tmpf_4 = tmpf_5 = tmpf_6 = tmpf_7 =
+                tmpf_8 = tmpf_9 = tmpf_10 = tmpf_11 = tmpf_12 = tmpf_13 = tmpf_14 = tmpf_15 =
+                tmpf_16 = tmpf_17 = 0.0f;
+
+            if (blockType == 2)
+            {
+                /*
+				*
+				*		Under MicrosoftVM 2922, This causes a GPF, or
+				*		At best, an ArrayIndexOutOfBoundsExceptin.
+				for(int p=0;p<36;p+=9)
+				{
+				out[p]   = out[p+1] = out[p+2] = out[p+3] =
+				out[p+4] = out[p+5] = out[p+6] = out[p+7] =
+				out[p+8] = 0.0f;
+				}
+				*/
+                outValues[0] = 0.0f;
+                outValues[1] = 0.0f;
+                outValues[2] = 0.0f;
+                outValues[3] = 0.0f;
+                outValues[4] = 0.0f;
+                outValues[5] = 0.0f;
+                outValues[6] = 0.0f;
+                outValues[7] = 0.0f;
+                outValues[8] = 0.0f;
+                outValues[9] = 0.0f;
+                outValues[10] = 0.0f;
+                outValues[11] = 0.0f;
+                outValues[12] = 0.0f;
+                outValues[13] = 0.0f;
+                outValues[14] = 0.0f;
+                outValues[15] = 0.0f;
+                outValues[16] = 0.0f;
+                outValues[17] = 0.0f;
+                outValues[18] = 0.0f;
+                outValues[19] = 0.0f;
+                outValues[20] = 0.0f;
+                outValues[21] = 0.0f;
+                outValues[22] = 0.0f;
+                outValues[23] = 0.0f;
+                outValues[24] = 0.0f;
+                outValues[25] = 0.0f;
+                outValues[26] = 0.0f;
+                outValues[27] = 0.0f;
+                outValues[28] = 0.0f;
+                outValues[29] = 0.0f;
+                outValues[30] = 0.0f;
+                outValues[31] = 0.0f;
+                outValues[32] = 0.0f;
+                outValues[33] = 0.0f;
+                outValues[34] = 0.0f;
+                outValues[35] = 0.0f;
+
+                int six_i = 0;
+
+                int i;
+                for (i = 0; i < 3; i++)
+                {
+                    // 12 point IMDCT
+                    // Begin 12 point IDCT
+                    // Input aliasing for 12 pt IDCT
+                    inValues[15 + i] += inValues[12 + i];
+                    inValues[12 + i] += inValues[9 + i];
+                    inValues[9 + i] += inValues[6 + i];
+                    inValues[6 + i] += inValues[3 + i];
+                    inValues[3 + i] += inValues[0 + i];
+
+                    // Input aliasing on odd indices (for 6 point IDCT)
+                    inValues[15 + i] += inValues[9 + i];
+                    inValues[9 + i] += inValues[3 + i];
+
+                    // 3 point IDCT on even indices
+                    float pp1, pp2, sum;
+                    pp2 = inValues[12 + i] * 0.500000000f;
+                    pp1 = inValues[6 + i] * 0.866025403f;
+                    sum = inValues[0 + i] + pp2;
+                    tmpf_1 = inValues[0 + i] - inValues[12 + i];
+                    tmpf_0 = sum + pp1;
+                    tmpf_2 = sum - pp1;
+
+                    // End 3 point IDCT on even indices
+                    // 3 point IDCT on odd indices (for 6 point IDCT)
+                    pp2 = inValues[15 + i] * 0.500000000f;
+                    pp1 = inValues[9 + i] * 0.866025403f;
+                    sum = inValues[3 + i] + pp2;
+                    tmpf_4 = inValues[3 + i] - inValues[15 + i];
+                    tmpf_5 = sum + pp1;
+                    tmpf_3 = sum - pp1;
+                    // End 3 point IDCT on odd indices
+                    // Twiddle factors on odd indices (for 6 point IDCT)
+
+                    tmpf_3 *= 1.931851653f;
+                    tmpf_4 *= 0.707106781f;
+                    tmpf_5 *= 0.517638090f;
+
+                    // Output butterflies on 2 3 point IDCT's (for 6 point IDCT)
+                    float save = tmpf_0;
+                    tmpf_0 += tmpf_5;
+                    tmpf_5 = save - tmpf_5;
+                    save = tmpf_1;
+                    tmpf_1 += tmpf_4;
+                    tmpf_4 = save - tmpf_4;
+                    save = tmpf_2;
+                    tmpf_2 += tmpf_3;
+                    tmpf_3 = save - tmpf_3;
+
+                    // End 6 point IDCT
+                    // Twiddle factors on indices (for 12 point IDCT)
+
+                    tmpf_0 *= 0.504314480f;
+                    tmpf_1 *= 0.541196100f;
+                    tmpf_2 *= 0.630236207f;
+                    tmpf_3 *= 0.821339815f;
+                    tmpf_4 *= 1.306562965f;
+                    tmpf_5 *= 3.830648788f;
+
+                    // End 12 point IDCT
+
+                    // Shift to 12 point modified IDCT, multiply by window type 2
+                    tmpf_8 = -tmpf_0 * 0.793353340f;
+                    tmpf_9 = -tmpf_0 * 0.608761429f;
+                    tmpf_7 = -tmpf_1 * 0.923879532f;
+                    tmpf_10 = -tmpf_1 * 0.382683432f;
+                    tmpf_6 = -tmpf_2 * 0.991444861f;
+                    tmpf_11 = -tmpf_2 * 0.130526192f;
+
+                    tmpf_0 = tmpf_3;
+                    tmpf_1 = tmpf_4 * 0.382683432f;
+                    tmpf_2 = tmpf_5 * 0.608761429f;
+
+                    tmpf_3 = -tmpf_5 * 0.793353340f;
+                    tmpf_4 = -tmpf_4 * 0.923879532f;
+                    tmpf_5 = -tmpf_0 * 0.991444861f;
+
+                    tmpf_0 *= 0.130526192f;
+
+                    outValues[six_i + 6] += tmpf_0;
+                    outValues[six_i + 7] += tmpf_1;
+                    outValues[six_i + 8] += tmpf_2;
+                    outValues[six_i + 9] += tmpf_3;
+                    outValues[six_i + 10] += tmpf_4;
+                    outValues[six_i + 11] += tmpf_5;
+                    outValues[six_i + 12] += tmpf_6;
+                    outValues[six_i + 13] += tmpf_7;
+                    outValues[six_i + 14] += tmpf_8;
+                    outValues[six_i + 15] += tmpf_9;
+                    outValues[six_i + 16] += tmpf_10;
+                    outValues[six_i + 17] += tmpf_11;
+
+                    six_i += 6;
+                }
+            }
+            else
+            {
+                // 36 point IDCT
+                // input aliasing for 36 point IDCT
+                inValues[17] += inValues[16];
+                inValues[16] += inValues[15];
+                inValues[15] += inValues[14];
+                inValues[14] += inValues[13];
+                inValues[13] += inValues[12];
+                inValues[12] += inValues[11];
+                inValues[11] += inValues[10];
+                inValues[10] += inValues[9];
+                inValues[9] += inValues[8];
+                inValues[8] += inValues[7];
+                inValues[7] += inValues[6];
+                inValues[6] += inValues[5];
+                inValues[5] += inValues[4];
+                inValues[4] += inValues[3];
+                inValues[3] += inValues[2];
+                inValues[2] += inValues[1];
+                inValues[1] += inValues[0];
+
+                // 18 point IDCT for odd indices
+                // input aliasing for 18 point IDCT
+                inValues[17] += inValues[15];
+                inValues[15] += inValues[13];
+                inValues[13] += inValues[11];
+                inValues[11] += inValues[9];
+                inValues[9] += inValues[7];
+                inValues[7] += inValues[5];
+                inValues[5] += inValues[3];
+                inValues[3] += inValues[1];
+
+                float tmp0, tmp1, tmp2, tmp3, tmp4, tmp0_, tmp1_, tmp2_, tmp3_;
+                float tmp0o, tmp1o, tmp2o, tmp3o, tmp4o, tmp0_o, tmp1_o, tmp2_o, tmp3_o;
+
+                // Fast 9 Point Inverse Discrete Cosine Transform
+                //
+                // By  Francois-Raymond Boyer
+                //         mailto:boyerf@iro.umontreal.ca
+                //         http://www.iro.umontreal.ca/~boyerf
+                //
+                // The code has been optimized for Intel processors
+                //  (takes a lot of time to convert float to and from iternal FPU representation)
+                //
+                // It is a simple "factorization" of the IDCT matrix.
+
+                // 9 point IDCT on even indices
+
+                // 5 points on odd indices (not realy an IDCT)
+                float i00 = inValues[0] + inValues[0];
+                float iip12 = i00 + inValues[12];
+
+                tmp0 = iip12 + inValues[4] * 1.8793852415718f + inValues[8] * 1.532088886238f +
+                       inValues[16] * 0.34729635533386f;
+                tmp1 = i00 + inValues[4] - inValues[8] - inValues[12] - inValues[12] - inValues[16];
+                tmp2 = iip12 - inValues[4] * 0.34729635533386f - inValues[8] * 1.8793852415718f +
+                       inValues[16] * 1.532088886238f;
+                tmp3 = iip12 - inValues[4] * 1.532088886238f + inValues[8] * 0.34729635533386f -
+                       inValues[16] * 1.8793852415718f;
+                tmp4 = inValues[0] - inValues[4] + inValues[8] - inValues[12] + inValues[16];
+
+                // 4 points on even indices
+                float i66_ = inValues[6] * 1.732050808f; // Sqrt[3]
+
+                tmp0_ = inValues[2] * 1.9696155060244f + i66_ + inValues[10] * 1.2855752193731f +
+                        inValues[14] * 0.68404028665134f;
+                tmp1_ = (inValues[2] - inValues[10] - inValues[14]) * 1.732050808f;
+                tmp2_ = inValues[2] * 1.2855752193731f - i66_ - inValues[10] * 0.68404028665134f +
+                        inValues[14] * 1.9696155060244f;
+                tmp3_ = inValues[2] * 0.68404028665134f - i66_ + inValues[10] * 1.9696155060244f -
+                        inValues[14] * 1.2855752193731f;
+
+                // 9 point IDCT on odd indices
+                // 5 points on odd indices (not realy an IDCT)
+                float i0 = inValues[0 + 1] + inValues[0 + 1];
+                float i0p12 = i0 + inValues[12 + 1];
+
+                tmp0o = i0p12 + inValues[4 + 1] * 1.8793852415718f + inValues[8 + 1] * 1.532088886238f +
+                        inValues[16 + 1] * 0.34729635533386f;
+                tmp1o = i0 + inValues[4 + 1] - inValues[8 + 1] - inValues[12 + 1] - inValues[12 + 1] -
+                        inValues[16 + 1];
+                tmp2o = i0p12 - inValues[4 + 1] * 0.34729635533386f - inValues[8 + 1] * 1.8793852415718f +
+                        inValues[16 + 1] * 1.532088886238f;
+                tmp3o = i0p12 - inValues[4 + 1] * 1.532088886238f + inValues[8 + 1] * 0.34729635533386f -
+                        inValues[16 + 1] * 1.8793852415718f;
+                tmp4o = (inValues[0 + 1] - inValues[4 + 1] + inValues[8 + 1] - inValues[12 + 1] +
+                         inValues[16 + 1]) * 0.707106781f; // Twiddled
+
+                // 4 points on even indices
+                float i6_ = inValues[6 + 1] * 1.732050808f; // Sqrt[3]
+
+                tmp0_o = inValues[2 + 1] * 1.9696155060244f + i6_ + inValues[10 + 1] * 1.2855752193731f +
+                         inValues[14 + 1] * 0.68404028665134f;
+                tmp1_o = (inValues[2 + 1] - inValues[10 + 1] - inValues[14 + 1]) * 1.732050808f;
+                tmp2_o = inValues[2 + 1] * 1.2855752193731f - i6_ - inValues[10 + 1] * 0.68404028665134f +
+                         inValues[14 + 1] * 1.9696155060244f;
+                tmp3_o = inValues[2 + 1] * 0.68404028665134f - i6_ + inValues[10 + 1] * 1.9696155060244f -
+                         inValues[14 + 1] * 1.2855752193731f;
+
+                // Twiddle factors on odd indices
+                // and
+                // Butterflies on 9 point IDCT's
+                // and
+                // twiddle factors for 36 point IDCT
+
+                float e, o;
+                e = tmp0 + tmp0_;
+                o = (tmp0o + tmp0_o) * 0.501909918f;
+                tmpf_0 = e + o;
+                tmpf_17 = e - o;
+                e = tmp1 + tmp1_;
+                o = (tmp1o + tmp1_o) * 0.517638090f;
+                tmpf_1 = e + o;
+                tmpf_16 = e - o;
+                e = tmp2 + tmp2_;
+                o = (tmp2o + tmp2_o) * 0.551688959f;
+                tmpf_2 = e + o;
+                tmpf_15 = e - o;
+                e = tmp3 + tmp3_;
+                o = (tmp3o + tmp3_o) * 0.610387294f;
+                tmpf_3 = e + o;
+                tmpf_14 = e - o;
+                tmpf_4 = tmp4 + tmp4o;
+                tmpf_13 = tmp4 - tmp4o;
+                e = tmp3 - tmp3_;
+                o = (tmp3o - tmp3_o) * 0.871723397f;
+                tmpf_5 = e + o;
+                tmpf_12 = e - o;
+                e = tmp2 - tmp2_;
+                o = (tmp2o - tmp2_o) * 1.183100792f;
+                tmpf_6 = e + o;
+                tmpf_11 = e - o;
+                e = tmp1 - tmp1_;
+                o = (tmp1o - tmp1_o) * 1.931851653f;
+                tmpf_7 = e + o;
+                tmpf_10 = e - o;
+                e = tmp0 - tmp0_;
+                o = (tmp0o - tmp0_o) * 5.736856623f;
+                tmpf_8 = e + o;
+                tmpf_9 = e - o;
+
+                // end 36 point IDCT */
+                // shift to modified IDCT
+                float[] win_bt = win[blockType];
+
+                outValues[0] = -tmpf_9 * win_bt[0];
+                outValues[1] = -tmpf_10 * win_bt[1];
+                outValues[2] = -tmpf_11 * win_bt[2];
+                outValues[3] = -tmpf_12 * win_bt[3];
+                outValues[4] = -tmpf_13 * win_bt[4];
+                outValues[5] = -tmpf_14 * win_bt[5];
+                outValues[6] = -tmpf_15 * win_bt[6];
+                outValues[7] = -tmpf_16 * win_bt[7];
+                outValues[8] = -tmpf_17 * win_bt[8];
+                outValues[9] = tmpf_17 * win_bt[9];
+                outValues[10] = tmpf_16 * win_bt[10];
+                outValues[11] = tmpf_15 * win_bt[11];
+                outValues[12] = tmpf_14 * win_bt[12];
+                outValues[13] = tmpf_13 * win_bt[13];
+                outValues[14] = tmpf_12 * win_bt[14];
+                outValues[15] = tmpf_11 * win_bt[15];
+                outValues[16] = tmpf_10 * win_bt[16];
+                outValues[17] = tmpf_9 * win_bt[17];
+                outValues[18] = tmpf_8 * win_bt[18];
+                outValues[19] = tmpf_7 * win_bt[19];
+                outValues[20] = tmpf_6 * win_bt[20];
+                outValues[21] = tmpf_5 * win_bt[21];
+                outValues[22] = tmpf_4 * win_bt[22];
+                outValues[23] = tmpf_3 * win_bt[23];
+                outValues[24] = tmpf_2 * win_bt[24];
+                outValues[25] = tmpf_1 * win_bt[25];
+                outValues[26] = tmpf_0 * win_bt[26];
+                outValues[27] = tmpf_0 * win_bt[27];
+                outValues[28] = tmpf_1 * win_bt[28];
+                outValues[29] = tmpf_2 * win_bt[29];
+                outValues[30] = tmpf_3 * win_bt[30];
+                outValues[31] = tmpf_4 * win_bt[31];
+                outValues[32] = tmpf_5 * win_bt[32];
+                outValues[33] = tmpf_6 * win_bt[33];
+                outValues[34] = tmpf_7 * win_bt[34];
+                outValues[35] = tmpf_8 * win_bt[35];
+            }
         }
 
     }
