@@ -35,7 +35,7 @@ namespace MP3_analysis_player.decoder.process
         //声道数
         private int nch = 0;
         //哈夫曼结果
-        private int[] Haffman_res = new int[576];
+        private int[] Haffman_res = new int[580];
         //零值填充起始处记录
         private int[] nonzero = new []{576,576};
 
@@ -172,6 +172,9 @@ namespace MP3_analysis_player.decoder.process
         //子带合成变量
         private float[] samples1 = new float[32];
         private float[] samples2 = new float[32];
+        private readonly Subband_Synthesis filter1 = new Subband_Synthesis(0,32700);
+        private readonly Subband_Synthesis filter2 = new Subband_Synthesis(1,32700);
+        private readonly Buffer buffer;
 
         /// <summary>
         /// 静态初始化函数
@@ -303,6 +306,10 @@ namespace MP3_analysis_player.decoder.process
             {
                 prevblck[i5] = new float[SBLIMIT * SSLIMIT];
             }
+            
+            buffer = new Buffer();
+
+
         }
 
         private static float[] create_t_43()
@@ -372,7 +379,7 @@ namespace MP3_analysis_player.decoder.process
                         for (ss = 1; ss < SSLIMIT; ss += 2)
                             out_1d[sb18 + ss] = -out_1d[sb18 + ss];
 
-                    if ((ch == 0) || nch == 2)
+                    if ((ch == 0))
                     {
                         for (ss = 0; ss < SSLIMIT; ss++)
                         {
@@ -408,6 +415,9 @@ namespace MP3_analysis_player.decoder.process
                     }
                 }
             }
+            WriteToFile w = new WriteToFile();
+            w.write(buffer.m_Buffer.Length, buffer.m_Buffer);
+
         }
 
         /// <summary>
@@ -1452,17 +1462,6 @@ namespace MP3_analysis_player.decoder.process
 
             if (blockType == 2)
             {
-                /*
-				*
-				*		Under MicrosoftVM 2922, This causes a GPF, or
-				*		At best, an ArrayIndexOutOfBoundsExceptin.
-				for(int p=0;p<36;p+=9)
-				{
-				out[p]   = out[p+1] = out[p+2] = out[p+3] =
-				out[p+4] = out[p+5] = out[p+6] = out[p+7] =
-				out[p+8] = 0.0f;
-				}
-				*/
                 outValues[0] = 0.0f;
                 outValues[1] = 0.0f;
                 outValues[2] = 0.0f;

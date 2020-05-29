@@ -156,6 +156,7 @@ namespace MP3_analysis_player.decoder
             ProcessControl process = new ProcessControl(frameHeaderInfo,sideInfomation,mainDatas,filename);
             //进入解码流程
             process.Start();
+            Console.WriteLine(input.Position);
         }
 
     }
