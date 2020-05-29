@@ -99,6 +99,13 @@ namespace MP3_analysis_player.decoder.process
             -1.0f, -0.57735027f, -0.26794919f, 0.0f, 0.26794919f, 0.57735027f, 1.0f
         };
 
+        //重排序变量
+        private static int[][] reorder_table;
+        private readonly float[] out_1d;
+
+        /// <summary>
+        /// 静态初始化函数
+        /// </summary>
         static ProcessControl(){
             t_43 = create_t_43();
         }
@@ -212,6 +219,14 @@ namespace MP3_analysis_player.decoder.process
                     stereo_res[i3][i4] = new float[SSLIMIT];
                 }
             }
+            if (reorder_table == null)
+            {
+                reorder_table = new int[9][];
+                for (int i = 0; i < 9; i++)
+                    reorder_table[i] = Reorder(sfBandIndex[i].s);
+            }
+
+            out_1d = new float[SBLIMIT * SSLIMIT];
         }
 
         private static float[] create_t_43()
@@ -261,12 +276,13 @@ namespace MP3_analysis_player.decoder.process
                 //立体声处理
                 stereo(gr);
 
-                /*if ((which_channels == OutputChannels.DOWNMIX_CHANNELS) && (channels > 1))
-                    doDownMix();
-
-                for (ch = first_channel; ch <= last_channel; ch++)
+                // if ((which_channels == OutputChannels.DOWNMIX_CHANNELS) && (nch > 1))
+                //     doDownMix();
+                for (int ch = 0; ch < nch; ch++)
                 {
-                    Reorder(lr[ch], ch, gr);
+                    //重排序
+                    Reorder(stereo_res[ch], ch, gr);
+                    /*
                     Antialias(ch, gr);
                     //for (int hb = 0;hb<576;hb++) CheckSumOut1d = CheckSumOut1d + out_1d[hb];
                     //System.out.println("CheckSumOut1d = "+CheckSumOut1d);
@@ -316,8 +332,8 @@ namespace MP3_analysis_player.decoder.process
                             filter2.WriteAllSamples(samples2);
                             filter2.calculate_pcm_samples(buffer);
                         }
-                    }
-                }*/
+                    }*/
+                }
                 // channels
             }
         }
@@ -1099,6 +1115,127 @@ namespace MP3_analysis_player.decoder.process
                 }
             }
         }
+
+        /// <summary>
+        /// 重排序
+        /// </summary>
+        /// <param name="xr"></param>
+        /// <param name="ch"></param>
+        /// <param name="gr"></param>
+        private void Reorder(float[][] xr, int ch, int gr)
+        {
+
+            Granule gr_info;
+            if (gr == 0)
+            {
+                gr_info = _sideInfomation.granule0;
+            }
+            else
+            {
+                gr_info = _sideInfomation.granule1;
+            }
+
+            int freq, freq3;
+            int index;
+            int sfb, sfb_start, sfb_lines;
+            int src_line, des_line;
+            float[][] xr_1d = xr;
+
+            if ((gr_info.window_switching_flag[ch] != 0) && (gr_info.block_type[ch] == 2))
+            {
+                for (index = 0; index < 576; index++)
+                    out_1d[index] = 0.0f;
+
+                if (gr_info.mixed_block_flag[ch] != 0)
+                {
+                    // NO REORDER FOR LOW 2 SUBBANDS
+                    for (index = 0; index < 36; index++)
+                    {
+                        // Modif E.B 02/22/99
+                        int reste = index % SSLIMIT;
+                        int quotien = (index - reste) / SSLIMIT;
+                        out_1d[index] = xr_1d[quotien][reste];
+                    }
+                    // REORDERING FOR REST SWITCHED SHORT
+                    for (sfb = 3, sfb_start = sfBandIndex[sfreq].s[3], sfb_lines = sfBandIndex[sfreq].s[4] - sfb_start;
+                        sfb < 13;
+                        sfb++, sfb_start = sfBandIndex[sfreq].s[sfb],
+                            sfb_lines = sfBandIndex[sfreq].s[sfb + 1] - sfb_start)
+                    {
+                        int sfb_start3 = (sfb_start << 2) - sfb_start;
+
+                        for (freq = 0, freq3 = 0; freq < sfb_lines; freq++, freq3 += 3)
+                        {
+                            src_line = sfb_start3 + freq;
+                            des_line = sfb_start3 + freq3;
+                            // Modif E.B 02/22/99
+                            int reste = src_line % SSLIMIT;
+                            int quotien = (src_line - reste) / SSLIMIT;
+
+                            out_1d[des_line] = xr_1d[quotien][reste];
+                            src_line += sfb_lines;
+                            des_line++;
+
+                            reste = src_line % SSLIMIT;
+                            quotien = (src_line - reste) / SSLIMIT;
+
+                            out_1d[des_line] = xr_1d[quotien][reste];
+                            src_line += sfb_lines;
+                            des_line++;
+
+                            reste = src_line % SSLIMIT;
+                            quotien = (src_line - reste) / SSLIMIT;
+
+                            out_1d[des_line] = xr_1d[quotien][reste];
+                        }
+                    }
+                }
+                else
+                {
+                    // pure short
+                    for (index = 0; index < 576; index++)
+                    {
+                        int j = reorder_table[sfreq][index];
+                        int reste = j % SSLIMIT;
+                        int quotien = (j - reste) / SSLIMIT;
+                        out_1d[index] = xr_1d[quotien][reste];
+                    }
+                }
+            }
+            else
+            {
+                // long blocks
+                for (index = 0; index < 576; index++)
+                {
+                    // Modif E.B 02/22/99
+                    int reste = index % SSLIMIT;
+                    int quotien = (index - reste) / SSLIMIT;
+                    out_1d[index] = xr_1d[quotien][reste];
+                }
+            }
+        }
+
+        /// <summary>
+        /// 重排序辅助函数
+        /// </summary>
+        /// <param name="scalefac_band"></param>
+        /// <returns></returns>
+        internal static int[] Reorder(int[] scalefac_band)
+        {
+            // SZD: converted from LAME
+            int j = 0;
+            int[] ix = new int[576];
+            for (int sfb = 0; sfb < 13; sfb++)
+            {
+                int start = scalefac_band[sfb];
+                int end = scalefac_band[sfb + 1];
+                for (int window = 0; window < 3; window++)
+                for (int i = start; i < end; i++)
+                    ix[3 * i + window] = j++;
+            }
+            return ix;
+        }
+
     }
 
 }
