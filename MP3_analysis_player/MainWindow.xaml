@@ -15,7 +15,7 @@
             </Grid.ColumnDefinitions>
             <Rectangle Fill="White" HorizontalAlignment="Left" Height="509" Stroke="Black" VerticalAlignment="Top" Width="214" Grid.ColumnSpan="2"/>
             <Rectangle Fill="#FFF4F4F5" HorizontalAlignment="Left" Height="233" Margin="214,0,0,0" Stroke="Black" VerticalAlignment="Top" Width="738" Grid.Column="1"/>
-            <Rectangle Fill="#FFF4F4F5" HorizontalAlignment="Left" Height="212" Margin="214,233,0,0" Stroke="Black" VerticalAlignment="Top" Width="738" Grid.Column="1"/>
+            <Rectangle Fill="#FFF4F4F5" HorizontalAlignment="Left" Height="212" Margin="214,223,0,0" Stroke="Black" VerticalAlignment="Top" Width="738" Grid.Column="1"/>
             <Rectangle Fill="#FFF4F4F5" HorizontalAlignment="Left" Height="64" Margin="214,445,0,0" Stroke="Black" VerticalAlignment="Top" Width="738" Grid.Column="1"/>
             <Button Content="" HorizontalAlignment="Left" Height="30" Margin="249,460,0,0" VerticalAlignment="Top" Width="30" RenderTransformOrigin="-0.233,0.467" BorderBrush="White" Grid.Column="1" Click="Button_Click_Play">
                 <Button.Background>
@@ -31,8 +31,13 @@
             <Button Grid.ColumnSpan="2" Name="Open_file" Content="打开文件" HorizontalAlignment="Left" Height="45" Margin="55,357,0,0" VerticalAlignment="Top" Width="100" Click="Open_file_Click"/>
             <Button Grid.ColumnSpan="2" Name="Close_file" Content="关闭文件" HorizontalAlignment="Left" Height="45" Margin="55,433,0,0" VerticalAlignment="Top" Width="100" Click="Close_file_Click"/>
             <Label x:Name="文件名" Grid.ColumnSpan="2" Content="文件名：" HorizontalAlignment="Left" Height="27" Margin="10,45,0,0" VerticalAlignment="Top" Width="54" FontWeight="Bold"/>
-            <TextBlock x:Name="Filename" Grid.ColumnSpan="2" HorizontalAlignment="Left" Height="23" Margin="64,49,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="139" Padding="0" FontSize="16"/>
-            <lvc:CartesianChart x:Name="pcm_chart" Series="{Binding SeriesCollection}" Grid.ColumnSpan="2" Margin="214,0,0,276" />
+            <TextBlock x:Name="Filename" Grid.ColumnSpan="2" HorizontalAlignment="Left" Height="23" Margin="16,77,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="182" Padding="0" FontSize="16"/>
+            <lvc:CartesianChart x:Name="pcm_chart_left" Tag="左声道" Series="{Binding SeriesCollection}" Grid.ColumnSpan="2" Margin="214,0,0,301" Loaded="pcm_chart_left_Loaded" />
+            <Label x:Name="文件名_Copy" Grid.ColumnSpan="2" Content="声道数：" HorizontalAlignment="Left" Height="27" Margin="10,118,0,0" VerticalAlignment="Top" Width="54" FontWeight="Bold" RenderTransformOrigin="0.463,-0.444"/>
+            <Label x:Name="文件名_Copy1" Grid.ColumnSpan="2" Content="采样类型：" HorizontalAlignment="Left" Height="27" Margin="10,191,0,0" VerticalAlignment="Top" Width="73" FontWeight="Bold" RenderTransformOrigin="0.444,6"/>
+            <TextBlock x:Name="Channels" Grid.ColumnSpan="2" HorizontalAlignment="Left" Height="23" Margin="16,150,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="182" Padding="0" FontSize="16" RenderTransformOrigin="0.484,4.391"/>
+            <TextBlock x:Name="SampleMode" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" VerticalAlignment="Top" Width="182" Padding="0" FontSize="16" RenderTransformOrigin="0.484,4.391" Grid.ColumnSpan="2" Margin="16,233,0,0"/>
+            <lvc:CartesianChart x:Name="pcm_chart_right" Series="{Binding SeriesCollection}" Grid.ColumnSpan="2" Margin="214,228,0,74" />
         </Grid>
     </Canvas>
 </Window>

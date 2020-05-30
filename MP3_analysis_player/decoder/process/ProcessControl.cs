@@ -17,6 +17,8 @@ namespace MP3_analysis_player.decoder.process
         private readonly Side_Infomation _sideInfomation;
         private readonly byte[] _mainDatas;
         private readonly string _filename;
+        private readonly WriteToFile _write;
+
 
         private GetBit getBit = new GetBit();
         //缩放因子
@@ -196,12 +198,13 @@ namespace MP3_analysis_player.decoder.process
             filter2 = new SubbandSynthesis(1);
         }
 
-        public ProcessControl(Data_Frame_Header_Info dataFrameHeaderInfo,Side_Infomation sideInfomation,byte[] mainDatas,string filename)
+        public ProcessControl(Data_Frame_Header_Info dataFrameHeaderInfo,Side_Infomation sideInfomation,byte[] mainDatas,string filename,WriteToFile write)
         {
             _dataFrameHeaderInfo = dataFrameHeaderInfo;
             _sideInfomation = sideInfomation;
             _mainDatas = mainDatas;
             _filename = filename;
+            _write = write;
 
             foreach (var b in _mainDatas)
             {
@@ -413,8 +416,7 @@ namespace MP3_analysis_player.decoder.process
                 }
             }
             //写入文件
-            WriteToFile w = new WriteToFile();
-            w.write(buffer.m_Buffer.Length,buffer.m_Buffer);
+            _write.write(buffer.m_Buffer.Length,buffer.m_Buffer);
         }
 
         /// <summary>

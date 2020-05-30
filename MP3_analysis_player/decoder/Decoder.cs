@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MP3_analysis_player.decoder.format_definition;
 using MP3_analysis_player.decoder.Getheader;
+using MP3_analysis_player.decoder.process;
 
 namespace MP3_analysis_player.decoder
 {
@@ -19,13 +20,19 @@ namespace MP3_analysis_player.decoder
         /// 文件数据流
         /// </summary>
         private Stream input;
+        //文件输出
+        private readonly WriteToFile write;
 
         private readonly string _filename;
+        private readonly MainWindow _win;
 
-        public Decoder(Stream _input,string filename)
+        public Decoder(Stream _input,string filename,MainWindow win)
         {
             input = _input;
             _filename = filename;
+            _win = win;
+            //初始化文件写入类
+            write = new WriteToFile(_filename);
         }
 
         /// <summary>
@@ -41,11 +48,25 @@ namespace MP3_analysis_player.decoder
 
             Data_Frame_Header_Info headerInfo = new Data_Frame_Header_Info();
 
+            //设置显示框
+            if (headerInfo.track_mode == 3)
+            {
+                _win.Channels.Text = "1";
+            }
+            else
+            {
+                _win.Channels.Text = "2";
+            }
+
+            int frequency = 0;
+
             while (headerInfo!=null)
             {
                 //数据帧头
                 Data_Frame_Header df = new Data_Frame_Header(input);
                 headerInfo = df.getHeaderInfo();
+
+                if (headerInfo!=null && headerInfo.frequency > frequency) frequency = headerInfo.frequency;
 
                 //文件找不到数据帧或者频率或比特率有问题
                 if ((headerInfo == null && Data_Frame_Header.begin_of_file) || (headerInfo!=null && headerInfo.frequency == 1) || (headerInfo!=null && headerInfo.bitrate == 0))
@@ -61,10 +82,11 @@ namespace MP3_analysis_player.decoder
                     input.Read(besides_header, 0, besides_header.Length);
 
                     //进行这一帧的解码
-                    Decode decode = new Decode(headerInfo,besides_header,input,_filename);
+                    Decode decode = new Decode(headerInfo,besides_header,input,_filename,write);
                     decode.Start();
                 }
             }
+            _win.SampleMode.Text = $"{frequency}Hz";
             return true;
         }
     }

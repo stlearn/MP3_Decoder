@@ -10,10 +10,18 @@ namespace MP3_analysis_player.decoder.process
 {
     class WriteToFile
     {
-        private static FileStream file = new FileStream("b.pcm",FileMode.OpenOrCreate | FileMode.Append);
-        public void write(int length,byte[] data)
+        private static FileStream file;
+
+        public WriteToFile(string filename)
         {
-            file.Write(data,0,length);
+            char[] sp = new[] { '.' };
+            string[] _f = filename.Split(sp,2); 
+            file = new FileStream($"{_f[0]}.pcm", FileMode.Create);
+        }
+
+        public void write(int length, byte[] data)
+        {
+            file.Write(data, 0, length);
         }
         ~WriteToFile()
         {

@@ -41,6 +41,7 @@ namespace MP3_analysis_player.decoder
         private readonly Stream input;
 
         private readonly string filename;
+        private readonly WriteToFile _write;
 
         /// <summary>
         /// 主数据位数
@@ -50,12 +51,13 @@ namespace MP3_analysis_player.decoder
 
         public static bool isFirstFrame = true;
 
-        public Decode(Data_Frame_Header_Info _frameHeaderInfo, byte[] _frameData,Stream _input,string _filename)
+        public Decode(Data_Frame_Header_Info _frameHeaderInfo, byte[] _frameData,Stream _input,string _filename,WriteToFile write)
         {
             frameHeaderInfo = _frameHeaderInfo;
             frame_data = _frameData;
             input = _input;
             filename = _filename;
+            _write = write;
         }
 
         /// <summary>
@@ -153,7 +155,7 @@ namespace MP3_analysis_player.decoder
                 mainDatas[data1.Length + j] = data2[j];
             }
 
-            ProcessControl process = new ProcessControl(frameHeaderInfo,sideInfomation,mainDatas,filename);
+            ProcessControl process = new ProcessControl(frameHeaderInfo,sideInfomation,mainDatas,filename,_write);
             //进入解码流程
             process.Start();
             Console.WriteLine(input.Position);
