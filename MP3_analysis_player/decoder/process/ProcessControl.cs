@@ -166,21 +166,34 @@ namespace MP3_analysis_player.decoder.process
                 -2.0710679058e-01f, -8.4752577594e-02f, -6.4157525656e-02f, -4.1131172614e-02f, -1.4790705759e-02f
             }
         };
-        private readonly float[][] prevblck;
+        private static readonly float[][] prevblck;
         internal float[] rawout = new float[36];
 
         //子带合成变量
+        private static readonly SubbandSynthesis filter1;
+        private static readonly SubbandSynthesis filter2;
         private float[] samples1 = new float[32];
         private float[] samples2 = new float[32];
-        private readonly Subband_Synthesis filter1 = new Subband_Synthesis(0,32700);
-        private readonly Subband_Synthesis filter2 = new Subband_Synthesis(1,32700);
-        private readonly Buffer buffer;
+        private readonly Buffer16BitStereo buffer;
 
         /// <summary>
         /// 静态初始化函数
         /// </summary>
         static ProcessControl(){
             t_43 = create_t_43();
+            prevblck = new float[2][];
+            for (int i5 = 0; i5 < 2; i5++)
+            {
+                prevblck[i5] = new float[SBLIMIT * SSLIMIT];
+            }
+
+            for (int ch = 0; ch < 2; ch++)
+            {
+                for (int j = 0; j < 576; j++)
+                    prevblck[ch][j] = 0.0f;
+            }
+            filter1 = new SubbandSynthesis(0);
+            filter2 = new SubbandSynthesis(1);
         }
 
         public ProcessControl(Data_Frame_Header_Info dataFrameHeaderInfo,Side_Infomation sideInfomation,byte[] mainDatas,string filename)
@@ -301,15 +314,7 @@ namespace MP3_analysis_player.decoder.process
 
             out_1d = new float[SBLIMIT * SSLIMIT];
 
-            prevblck = new float[2][];
-            for (int i5 = 0; i5 < 2; i5++)
-            {
-                prevblck[i5] = new float[SBLIMIT * SSLIMIT];
-            }
-            
-            buffer = new Buffer();
-
-
+            buffer = new Buffer16BitStereo();
         }
 
         private static float[] create_t_43()
@@ -359,8 +364,6 @@ namespace MP3_analysis_player.decoder.process
                 //立体声处理
                 stereo(gr);
 
-                // if ((which_channels == OutputChannels.DOWNMIX_CHANNELS) && (nch > 1))
-                //     doDownMix();
                 int ss, sb, sb18;
                 for (int ch = 0; ch < nch; ch++)
                 {
@@ -378,19 +381,17 @@ namespace MP3_analysis_player.decoder.process
                         //频率反转
                         for (ss = 1; ss < SSLIMIT; ss += 2)
                             out_1d[sb18 + ss] = -out_1d[sb18 + ss];
-
-                    if ((ch == 0))
+                    //子带合成
+                    if (ch == 0)
                     {
                         for (ss = 0; ss < SSLIMIT; ss++)
                         {
-                            //子带合成
                             sb = 0;
                             for (sb18 = 0; sb18 < 576; sb18 += 18)
                             {
                                 samples1[sb] = out_1d[sb18 + ss];
                                 sb++;
                             }
-
                             filter1.WriteAllSamples(samples1);
                             filter1.calculate_pcm_samples(buffer);
                         }
@@ -399,25 +400,21 @@ namespace MP3_analysis_player.decoder.process
                     {
                         for (ss = 0; ss < SSLIMIT; ss++)
                         {
-                            // Polyphase synthesis
                             sb = 0;
                             for (sb18 = 0; sb18 < 576; sb18 += 18)
                             {
                                 samples2[sb] = out_1d[sb18 + ss];
-                                //filter2.input_sample(out_1d[sb18+ss], sb);
                                 sb++;
                             }
-                            //buffer.appendSamples(1, samples2);
-                            //Console.WriteLine("Adding samples right into output buffer");
                             filter2.WriteAllSamples(samples2);
                             filter2.calculate_pcm_samples(buffer);
                         }
                     }
                 }
             }
+            //写入文件
             WriteToFile w = new WriteToFile();
-            w.write(buffer.m_Buffer.Length, buffer.m_Buffer);
-
+            w.write(buffer.m_Buffer.Length,buffer.m_Buffer);
         }
 
         /// <summary>
@@ -1504,20 +1501,16 @@ namespace MP3_analysis_player.decoder.process
                 int i;
                 for (i = 0; i < 3; i++)
                 {
-                    // 12 point IMDCT
-                    // Begin 12 point IDCT
-                    // Input aliasing for 12 pt IDCT
+                    
                     inValues[15 + i] += inValues[12 + i];
                     inValues[12 + i] += inValues[9 + i];
                     inValues[9 + i] += inValues[6 + i];
                     inValues[6 + i] += inValues[3 + i];
                     inValues[3 + i] += inValues[0 + i];
 
-                    // Input aliasing on odd indices (for 6 point IDCT)
                     inValues[15 + i] += inValues[9 + i];
                     inValues[9 + i] += inValues[3 + i];
 
-                    // 3 point IDCT on even indices
                     float pp1, pp2, sum;
                     pp2 = inValues[12 + i] * 0.500000000f;
                     pp1 = inValues[6 + i] * 0.866025403f;
@@ -1526,22 +1519,17 @@ namespace MP3_analysis_player.decoder.process
                     tmpf_0 = sum + pp1;
                     tmpf_2 = sum - pp1;
 
-                    // End 3 point IDCT on even indices
-                    // 3 point IDCT on odd indices (for 6 point IDCT)
                     pp2 = inValues[15 + i] * 0.500000000f;
                     pp1 = inValues[9 + i] * 0.866025403f;
                     sum = inValues[3 + i] + pp2;
                     tmpf_4 = inValues[3 + i] - inValues[15 + i];
                     tmpf_5 = sum + pp1;
                     tmpf_3 = sum - pp1;
-                    // End 3 point IDCT on odd indices
-                    // Twiddle factors on odd indices (for 6 point IDCT)
 
                     tmpf_3 *= 1.931851653f;
                     tmpf_4 *= 0.707106781f;
                     tmpf_5 *= 0.517638090f;
 
-                    // Output butterflies on 2 3 point IDCT's (for 6 point IDCT)
                     float save = tmpf_0;
                     tmpf_0 += tmpf_5;
                     tmpf_5 = save - tmpf_5;
@@ -1552,8 +1540,6 @@ namespace MP3_analysis_player.decoder.process
                     tmpf_2 += tmpf_3;
                     tmpf_3 = save - tmpf_3;
 
-                    // End 6 point IDCT
-                    // Twiddle factors on indices (for 12 point IDCT)
 
                     tmpf_0 *= 0.504314480f;
                     tmpf_1 *= 0.541196100f;
@@ -1562,9 +1548,6 @@ namespace MP3_analysis_player.decoder.process
                     tmpf_4 *= 1.306562965f;
                     tmpf_5 *= 3.830648788f;
 
-                    // End 12 point IDCT
-
-                    // Shift to 12 point modified IDCT, multiply by window type 2
                     tmpf_8 = -tmpf_0 * 0.793353340f;
                     tmpf_9 = -tmpf_0 * 0.608761429f;
                     tmpf_7 = -tmpf_1 * 0.923879532f;
@@ -1600,8 +1583,6 @@ namespace MP3_analysis_player.decoder.process
             }
             else
             {
-                // 36 point IDCT
-                // input aliasing for 36 point IDCT
                 inValues[17] += inValues[16];
                 inValues[16] += inValues[15];
                 inValues[15] += inValues[14];
@@ -1620,8 +1601,6 @@ namespace MP3_analysis_player.decoder.process
                 inValues[2] += inValues[1];
                 inValues[1] += inValues[0];
 
-                // 18 point IDCT for odd indices
-                // input aliasing for 18 point IDCT
                 inValues[17] += inValues[15];
                 inValues[15] += inValues[13];
                 inValues[13] += inValues[11];
@@ -1634,20 +1613,6 @@ namespace MP3_analysis_player.decoder.process
                 float tmp0, tmp1, tmp2, tmp3, tmp4, tmp0_, tmp1_, tmp2_, tmp3_;
                 float tmp0o, tmp1o, tmp2o, tmp3o, tmp4o, tmp0_o, tmp1_o, tmp2_o, tmp3_o;
 
-                // Fast 9 Point Inverse Discrete Cosine Transform
-                //
-                // By  Francois-Raymond Boyer
-                //         mailto:boyerf@iro.umontreal.ca
-                //         http://www.iro.umontreal.ca/~boyerf
-                //
-                // The code has been optimized for Intel processors
-                //  (takes a lot of time to convert float to and from iternal FPU representation)
-                //
-                // It is a simple "factorization" of the IDCT matrix.
-
-                // 9 point IDCT on even indices
-
-                // 5 points on odd indices (not realy an IDCT)
                 float i00 = inValues[0] + inValues[0];
                 float iip12 = i00 + inValues[12];
 
@@ -1660,8 +1625,7 @@ namespace MP3_analysis_player.decoder.process
                        inValues[16] * 1.8793852415718f;
                 tmp4 = inValues[0] - inValues[4] + inValues[8] - inValues[12] + inValues[16];
 
-                // 4 points on even indices
-                float i66_ = inValues[6] * 1.732050808f; // Sqrt[3]
+                float i66_ = inValues[6] * 1.732050808f;
 
                 tmp0_ = inValues[2] * 1.9696155060244f + i66_ + inValues[10] * 1.2855752193731f +
                         inValues[14] * 0.68404028665134f;
@@ -1671,8 +1635,6 @@ namespace MP3_analysis_player.decoder.process
                 tmp3_ = inValues[2] * 0.68404028665134f - i66_ + inValues[10] * 1.9696155060244f -
                         inValues[14] * 1.2855752193731f;
 
-                // 9 point IDCT on odd indices
-                // 5 points on odd indices (not realy an IDCT)
                 float i0 = inValues[0 + 1] + inValues[0 + 1];
                 float i0p12 = i0 + inValues[12 + 1];
 
@@ -1685,10 +1647,9 @@ namespace MP3_analysis_player.decoder.process
                 tmp3o = i0p12 - inValues[4 + 1] * 1.532088886238f + inValues[8 + 1] * 0.34729635533386f -
                         inValues[16 + 1] * 1.8793852415718f;
                 tmp4o = (inValues[0 + 1] - inValues[4 + 1] + inValues[8 + 1] - inValues[12 + 1] +
-                         inValues[16 + 1]) * 0.707106781f; // Twiddled
+                         inValues[16 + 1]) * 0.707106781f; 
 
-                // 4 points on even indices
-                float i6_ = inValues[6 + 1] * 1.732050808f; // Sqrt[3]
+                float i6_ = inValues[6 + 1] * 1.732050808f;
 
                 tmp0_o = inValues[2 + 1] * 1.9696155060244f + i6_ + inValues[10 + 1] * 1.2855752193731f +
                          inValues[14 + 1] * 0.68404028665134f;
@@ -1698,11 +1659,6 @@ namespace MP3_analysis_player.decoder.process
                 tmp3_o = inValues[2 + 1] * 0.68404028665134f - i6_ + inValues[10 + 1] * 1.9696155060244f -
                          inValues[14 + 1] * 1.2855752193731f;
 
-                // Twiddle factors on odd indices
-                // and
-                // Butterflies on 9 point IDCT's
-                // and
-                // twiddle factors for 36 point IDCT
 
                 float e, o;
                 e = tmp0 + tmp0_;
@@ -1740,8 +1696,6 @@ namespace MP3_analysis_player.decoder.process
                 tmpf_8 = e + o;
                 tmpf_9 = e - o;
 
-                // end 36 point IDCT */
-                // shift to modified IDCT
                 float[] win_bt = win[blockType];
 
                 outValues[0] = -tmpf_9 * win_bt[0];
