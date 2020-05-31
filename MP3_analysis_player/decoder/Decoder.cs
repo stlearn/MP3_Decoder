@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using MP3_analysis_player.decoder.format_definition;
 using MP3_analysis_player.decoder.Getheader;
 using MP3_analysis_player.decoder.process;
+using MP3_analysis_player.player;
 
 namespace MP3_analysis_player.decoder
 {
@@ -25,14 +26,16 @@ namespace MP3_analysis_player.decoder
 
         private readonly string _filename;
         private readonly MainWindow _win;
+        private readonly PcmDatas _pcmDatas;
 
-        public Decoder(Stream _input,string filename,MainWindow win)
+        public Decoder(Stream _input,string filename,MainWindow win,PcmDatas pcmDatas)
         {
             input = _input;
             _filename = filename;
             _win = win;
+            _pcmDatas = pcmDatas;
             //初始化文件写入类
-            write = new WriteToFile(_filename);
+            write = new WriteToFile(_filename,pcmDatas);
         }
 
         /// <summary>
@@ -52,10 +55,12 @@ namespace MP3_analysis_player.decoder
             if (headerInfo.track_mode == 3)
             {
                 _win.Channels.Text = "1";
+                _pcmDatas.Channels = 1;
             }
             else
             {
                 _win.Channels.Text = "2";
+                _pcmDatas.Channels = 2;
             }
 
             int frequency = 0;
@@ -87,6 +92,7 @@ namespace MP3_analysis_player.decoder
                 }
             }
             _win.SampleMode.Text = $"{frequency}Hz";
+            _pcmDatas.Frequency = frequency;
             return true;
         }
     }
