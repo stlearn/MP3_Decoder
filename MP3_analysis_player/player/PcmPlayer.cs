@@ -6,10 +6,11 @@ using System.Media;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
+using System.Windows.Forms;
 using System.Windows.Threading;
 using MP3_analysis_player.decoder.process;
 using NAudio.Wave;
+using Application = System.Windows.Application;
 
 namespace MP3_analysis_player.player
 {
@@ -58,25 +59,34 @@ namespace MP3_analysis_player.player
             int count = 0;
             while (count < tdata.Length)
             {
-                BufferedWaveProvider provider = new BufferedWaveProvider(waveFormat);
-                if ((tdata.Length - count) < 88200)
+                try
                 {
-                    provider.AddSamples(tdata, count, tdata.Length-count-1);
+                    BufferedWaveProvider provider = new BufferedWaveProvider(waveFormat);
+                    if ((tdata.Length - count) < 88200)
+                    {
+                        provider.AddSamples(tdata, count, tdata.Length - count - 1);
+                    }
+                    else
+                    {
+                        provider.AddSamples(tdata, count, 882000);
+                    }
+
+                    pcmOut.Init(provider);
+                    pcmOut.Play();
+                    Thread.Sleep((int) provider.BufferDuration.TotalMilliseconds - 50);
+                    count += 882000;
+                    Application.Current.Dispatcher.BeginInvoke(
+                        DispatcherPriority.Background,
+                        new Action(() =>
+                            _window.ProgressBar.Value = (int) (100f * ((float) count / (float) tdata.Length))));
                 }
-                else
+                catch (Exception e)
                 {
-                    provider.AddSamples(tdata, count, 882000);
+                    Console.WriteLine(e.ToString());
                 }
-                pcmOut.Init(provider);
-                pcmOut.Play();
-                Thread.Sleep((int)provider.BufferDuration.TotalMilliseconds-50);
-                count += 882000;
-                Application.Current.Dispatcher.BeginInvoke(
-                    DispatcherPriority.Background,
-                    new Action(() => _window.ProgressBar.Value =(int)(100f*((float)count/(float)tdata.Length))));
+
             }
-            
         }
-          
+
     }
 }
