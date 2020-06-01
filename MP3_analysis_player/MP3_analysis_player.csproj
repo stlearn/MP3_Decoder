@@ -108,6 +108,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="decoder\Getheader\Header.cs" />
+    <Compile Include="player\ChartViewThread.cs" />
     <Compile Include="player\PcmDatas.cs" />
     <Compile Include="player\PcmPlayer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">

@@ -46,13 +46,16 @@ namespace MP3_analysis_player
 
         private void Button_Click_Play(object sender, RoutedEventArgs e)
         {
-            //防止正在播放
-            if (player != null)
+            if (_pcmDatas != null && _pcmDatas.Frequency!=0 &&_pcmDatas.Channels!=0)
             {
-                player.stop();
+                //防止正在播放
+                if (player != null)
+                {
+                    player.stop();
+                }
+                player = new PcmPlayer(_pcmDatas, this);
+                player.play();
             }
-            player = new PcmPlayer(_pcmDatas,this);
-            player.play();
         }
 
         private void ProgressBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -89,6 +92,7 @@ namespace MP3_analysis_player
             }
 
             //开始解码
+            _pcmDatas.Clear();
             Decoder decoder = new Decoder(input,a[a.Length-1],this,_pcmDatas);
             if (!decoder.Start())
             {
@@ -104,42 +108,8 @@ namespace MP3_analysis_player
 
                 MessageBox.Show("解码成功,可以播放了", "提示", MessageBoxButton.OK);
 
-                IEnumerable<short> left = _pcmDatas.getLeft();
-                IEnumerable<short> right = _pcmDatas.getRight();
-
-                //抽样步长
-                int len = (int) (left.LongCount() / 1000);
-                //抽样样本
-                IList<short> l = left.ToList();
-                IList<short> r = right.ToList();
-
-                ChartValues<short> ll = new ChartValues<short>();
-                ChartValues<short> rr = new ChartValues<short>();
-
-                for (int i = 0; i < 1000; i++)
-                {
-                    ll.Add(l[i*len]);
-                    rr.Add(r[i*len]);
-                }
-
-
-
-                pcm_chart_left.Series = new SeriesCollection
-                {
-                    new LineSeries
-                    {
-                        Title = "左声道",
-                        Values = ll
-                    }
-                };
-                pcm_chart_right.Series = new SeriesCollection
-                {
-                    new LineSeries
-                    {
-                        Title = "右声道",
-                        Values = rr
-                    }
-                };
+                ChartViewThread chartView = new ChartViewThread(_pcmDatas,this);
+                chartView.start();
             };
 
         }
