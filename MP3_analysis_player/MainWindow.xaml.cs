@@ -122,8 +122,8 @@ namespace MP3_analysis_player
                     rr.Add(r[i*len]);
                 }
 
-                pcm_chart_right.Zoom = ZoomingOptions.X;
-                pcm_chart_left.Zoom = ZoomingOptions.Xy;
+
+
                 pcm_chart_left.Series = new SeriesCollection
                 {
                     new LineSeries
